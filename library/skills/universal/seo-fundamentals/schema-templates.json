@@ -1,0 +1,159 @@
+{
+  "_comment_usage": "Skopiuj ten plik do src/data/schema-templates.json w projekcie. Zastąp wszystkie {{PLACEHOLDER}} prawdziwymi wartościami przed deployem. Waliduj pod validator.schema.org przed wdrożeniem.",
+
+  "Organization": {
+    "_comment": "Wymagane: COMPANY_NAME, COMPANY_URL, COMPANY_LOGO_URL. Opcjonalne: SOCIAL_PROFILES (array stringów), contactPoint.",
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "{{COMPANY_NAME}}",
+    "url": "{{COMPANY_URL}}",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "{{COMPANY_LOGO_URL}}",
+      "width": 400,
+      "height": 400
+    },
+    "sameAs": "{{SOCIAL_PROFILES}}",
+    "contactPoint": {
+      "@type": "ContactPoint",
+      "telephone": "{{COMPANY_PHONE}}",
+      "contactType": "customer service",
+      "availableLanguage": "Polish",
+      "areaServed": "PL"
+    }
+  },
+
+  "LocalBusiness": {
+    "_comment": "Wymagane: COMPANY_NAME, STREET, CITY, POSTAL_CODE, PHONE, GEO_LAT, GEO_LNG. Opcjonalne: PRICE_RANGE_OPTIONAL (usuń pole jeśli nie chcesz podawać cen — patrz anti-pattern 'fake range'), OPENING_HOURS, AREA_SERVED.",
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    "name": "{{COMPANY_NAME}}",
+    "url": "{{COMPANY_URL}}",
+    "telephone": "{{COMPANY_PHONE}}",
+    "image": "{{COMPANY_LOGO_URL}}",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "{{STREET}}",
+      "addressLocality": "{{CITY}}",
+      "postalCode": "{{POSTAL_CODE}}",
+      "addressCountry": "PL"
+    },
+    "geo": {
+      "@type": "GeoCoordinates",
+      "latitude": "{{COMPANY_GEO_LAT}}",
+      "longitude": "{{COMPANY_GEO_LNG}}"
+    },
+    "openingHours": "{{OPENING_HOURS}}",
+    "areaServed": ["{{AREA_SERVED_1}}", "{{AREA_SERVED_2}}"],
+    "priceRange": "{{PRICE_RANGE_OPTIONAL}}",
+    "_comment_priceRange": "ANTI-PATTERN: NIE wpisuj fake range (np. '$$$') jeśli nie znasz realnych cen. Albo wpisz realny przedział PLN/m² albo usuń to pole. Fake range = manual penalty risk.",
+    "sameAs": "{{SOCIAL_PROFILES}}"
+  },
+
+  "Service": {
+    "_comment": "Wymagane: SERVICE_NAME, SERVICE_DESCRIPTION, COMPANY_NAME, COMPANY_URL. Opcjonalne: SERVICE_IMAGE, AREA_SERVED.",
+    "@context": "https://schema.org",
+    "@type": "Service",
+    "name": "{{SERVICE_NAME}}",
+    "description": "{{SERVICE_DESCRIPTION}}",
+    "provider": {
+      "@type": "LocalBusiness",
+      "name": "{{COMPANY_NAME}}",
+      "url": "{{COMPANY_URL}}"
+    },
+    "areaServed": ["{{AREA_SERVED_1}}", "{{AREA_SERVED_2}}"],
+    "serviceType": "{{SERVICE_TYPE}}",
+    "image": "{{SERVICE_IMAGE}}"
+  },
+
+  "Article": {
+    "_comment": "Wymagane: HEADLINE (max 110 znaków), DATE_PUBLISHED (ISO 8601), DATE_MODIFIED (ISO 8601), AUTHOR_NAME, COMPANY_NAME, COMPANY_URL, COMPANY_LOGO_URL. Opcjonalne: IMAGE, AUTHOR_URL. E-E-A-T: AUTHOR_NAME musi być realną osobą z profilem AUTHOR_URL.",
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "{{HEADLINE}}",
+    "datePublished": "{{DATE_PUBLISHED}}",
+    "dateModified": "{{DATE_MODIFIED}}",
+    "author": {
+      "@type": "Person",
+      "name": "{{AUTHOR_NAME}}",
+      "url": "{{AUTHOR_URL}}"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "{{COMPANY_NAME}}",
+      "url": "{{COMPANY_URL}}",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "{{COMPANY_LOGO_URL}}"
+      }
+    },
+    "image": {
+      "@type": "ImageObject",
+      "url": "{{IMAGE}}",
+      "width": 1200,
+      "height": 630
+    },
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id": "{{ARTICLE_URL}}"
+    }
+  },
+
+  "FAQPage": {
+    "_comment": "Wymagane: minimum 1 Question z Answer. Dobre dla sekcji FAQ na landing page — wysoka szansa na Featured Snippet. Każda odpowiedź powinna być min 30 słów (Google wymaga treści).",
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "{{QUESTION_1}}",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "{{ANSWER_1}}"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "{{QUESTION_2}}",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "{{ANSWER_2}}"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "{{QUESTION_3}}",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "{{ANSWER_3}}"
+        }
+      }
+    ]
+  },
+
+  "BreadcrumbList": {
+    "_comment": "Wymagane: minimum 2 pozycje (strona główna + bieżąca). Position numeracja od 1. Użyj razem z wizualnym komponentem breadcrumb w UI — Google wymaga spójności między schema a wyświetlaną nawigacją.",
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Strona główna",
+        "item": "{{COMPANY_URL}}"
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "{{BREADCRUMB_L2_NAME}}",
+        "item": "{{BREADCRUMB_L2_URL}}"
+      },
+      {
+        "@type": "ListItem",
+        "position": 3,
+        "name": "{{BREADCRUMB_L3_NAME}}",
+        "item": "{{BREADCRUMB_L3_URL}}"
+      }
+    ]
+  }
+}

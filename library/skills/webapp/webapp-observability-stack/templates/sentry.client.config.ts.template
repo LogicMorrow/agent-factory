@@ -1,0 +1,80 @@
+/**
+ * sentry.client.config.ts — Sentry browser-side instrumentation for {{PROJECT_NAME}}
+ * Stack: Next.js 14.2 App Router, @sentry/nextjs 10
+ *
+ * Place in project root. Loaded automatically by @sentry/nextjs.
+ *
+ * NOTE: Session Replay is intentionally DISABLED for privacy compliance (RODO).
+ * Replays record user interactions including keystrokes — unacceptable for
+ * single-admin app with client PII (imiona, nazwiska, adresy budowy).
+ *
+ * ENV vars (client-side = NEXT_PUBLIC_ prefix):
+ *   NEXT_PUBLIC_SENTRY_DSN      — public, same value as server SENTRY_DSN
+ *   NEXT_PUBLIC_APP_VERSION     — semver
+ */
+
+import * as Sentry from '@sentry/nextjs'
+
+const IS_PRODUCTION = process.env.NODE_ENV === 'production'
+
+Sentry.init({
+  dsn: process.env.NEXT_PUBLIC_SENTRY_DSN ?? process.env.SENTRY_DSN,
+
+  enabled: Boolean(
+    process.env.NEXT_PUBLIC_SENTRY_DSN ?? process.env.SENTRY_DSN
+  ),
+
+  environment: process.env.NODE_ENV ?? 'development',
+
+  release: process.env.NEXT_PUBLIC_APP_VERSION ?? 'dev',
+
+  // Low sample rate for performance (browser tracing adds overhead)
+  tracesSampleRate: IS_PRODUCTION ? 0.05 : 1.0,
+
+  // ─── NO Session Replay ────────────────────────────────────────────
+  // Replay intentionally absent — RODO compliance for client PII.
+  // If needed in future: add explicit user consent gate first.
+
+  // ─── PII filtering (browser) ──────────────────────────────────────
+  beforeSend(event) {
+    // Remove form data from breadcrumbs
+    if (event.breadcrumbs?.values) {
+      event.breadcrumbs.values = event.breadcrumbs.values.map((b) => {
+        if (b.category === 'ui.input' || b.category === 'ui.click') {
+          return { ...b, message: '[filtered]' }
+        }
+        return b
+      })
+    }
+
+    // Strip user email
+    if (event.user?.email) {
+      delete event.user.email
+    }
+
+    return event
+  },
+
+  // ─── Ignored browser errors ───────────────────────────────────────
+  ignoreErrors: [
+    // Browser extension noise
+    'ResizeObserver loop limit exceeded',
+    'ResizeObserver loop completed with undelivered notifications',
+    // Safari specific
+    'Non-Error promise rejection captured',
+    // Network aborts (user navigated away)
+    'AbortError',
+    'The user aborted a request.',
+    'Failed to fetch',
+    'Load failed',
+    // Chrome extension noise
+    /^chrome-extension:\/\//,
+    /^moz-extension:\/\//,
+  ],
+
+  // ─── Integrations ─────────────────────────────────────────────────
+  integrations: [
+    // Browser tracing (page loads, navigation)
+    Sentry.browserTracingIntegration,
+  ],
+})

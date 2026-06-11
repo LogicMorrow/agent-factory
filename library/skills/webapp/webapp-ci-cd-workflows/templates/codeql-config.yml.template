@@ -1,0 +1,42 @@
+# CodeQL Configuration — {{PROJECT_NAME}}
+# Skill: webapp-ci-cd-workflows v1.0.0 
+# Zasada #15 CLAUDE.md pkt 12 — CodeQL JS/TS static analysis
+#
+# Podmień zmienne: {{PROJECT_NAME}}
+#
+# Lokalizacja: .github/codeql/codeql-config.yml
+# Referencja: security.yml job `codeql` używa config-file: .github/codeql/codeql-config.yml
+
+name: "{{PROJECT_NAME}} CodeQL Config"
+
+# Query suites — security-extended pokrywa OWASP Top 10 dla JS/TS
+queries:
+  - uses: security-extended
+  - uses: security-and-quality
+
+# Ścieżki do analizy (tylko kod aplikacji)
+paths:
+  - src
+  - app
+  - lib
+  - pages
+  - components
+  - hooks
+  - utils
+  - server
+
+# Wyklucz wygenerowany kod, testy i build artifacts
+paths-ignore:
+  - node_modules
+  - .next
+  - dist
+  - out
+  - coverage
+  - "**/*.test.ts"
+  - "**/*.test.tsx"
+  - "**/*.spec.ts"
+  - "**/*.spec.tsx"
+  - "**/__tests__/**"
+  - "**/__mocks__/**"
+  - playwright-report
+  - .turbo

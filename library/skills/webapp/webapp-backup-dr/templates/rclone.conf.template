@@ -1,0 +1,44 @@
+# rclone.conf — webapp-backup-dr v1.0.0
+# Backblaze B2 — S3-compatible endpoint
+# UWAGA: credentials pobierane z env vars, NIE hardcoded w pliku
+#
+# Aby rclone czytał env vars jako wartości konfiguracyjne:
+# RCLONE_CONFIG_B2REMOTE_APPLICATION_KEY_ID=<wartość>
+# RCLONE_CONFIG_B2REMOTE_APPLICATION_KEY=<wartość>
+# LUB użyj ${B2_APPLICATION_KEY_ID} w env_file compose i podmień w entrypoint
+#
+# Preferowana metoda dla Docker: env_file w compose.prod.yml + rclone --config=/dev/stdin
+
+[b2remote]
+type = b2
+# account = Application Key ID (ID klucza aplikacji, NIE master account ID)
+# Przekazywany przez zmienną środowiskową B2_APPLICATION_KEY_ID w kontenerze
+# rclone czyta: RCLONE_CONFIG_B2REMOTE_ACCOUNT
+account = ${B2_APPLICATION_KEY_ID}
+# key = Application Key (secret)
+# Przekazywany przez zmienną środowiskową B2_APPLICATION_KEY w kontenerze
+# rclone czyta: RCLONE_CONFIG_B2REMOTE_KEY
+key = ${B2_APPLICATION_KEY}
+# Endpoint B2 (S3-compatible — opcjonalna alternatywa dla natywnego B2 API)
+# Dla natywnego B2 API: endpoint zostaw pusty (rclone auto-detect)
+# Dla S3-compatible API (np. boto3): endpoint = https://s3.us-west-004.backblazeb2.com
+# (region zależy od wybranego przy tworzeniu bucket)
+endpoint =
+# Hard delete: false = pliki trafiają do "hidden" (B2 versioning/Object Lock)
+# false = bezpieczniej przy accidentalnym rclone sync
+hard_delete = false
+
+# Opcjonalne: chunk size dla dużych plików (domyślnie 96M)
+chunk_size = 96M
+# Upload cutoff: pliki powyżej tej wartości używają multipart upload
+upload_cutoff = 200M
+# Liczba równoległych transferów
+transfers = 2
+
+# ── Użycie w skryptach ────────────────────────────────────────────────────────
+# rclone copy --config=/etc/rclone.conf local/path b2remote:{{B2_BUCKET}}/daily/
+# rclone lsf --config=/etc/rclone.conf b2remote:{{B2_BUCKET}}/daily/
+# rclone size --config=/etc/rclone.conf b2remote:{{B2_BUCKET}}/
+#
+# Weryfikacja połączenia:
+# rclone lsd --config=/etc/rclone.conf b2remote:

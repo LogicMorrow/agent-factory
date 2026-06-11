@@ -1,0 +1,85 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+---
+
+## [Unreleased]
+
+### Added
+### Changed
+### Deprecated
+### Removed
+### Fixed
+### Security
+
+---
+
+## [1.0.0] - {{YYYY-MM-DD}}
+
+### Added
+- Initial production release
+- Wycena robocizny ryczałtowej (pozycje kosztorysowe dekarskie)
+- Wykaz drewna konstrukcyjnego (8 typów, formaty AxBxC, jednostki mb/szt/m³)
+- Generowanie 2 PDF: oferta + wykaz drewna (`@react-pdf/renderer`, polska typografia)
+- Archiwum ofert z wyszukiwaniem po nazwisku klienta
+- Single-user auth: iron-session + bcryptjs (cost 12) + zxcvbn (score ≥3)
+- TOTP optional (feature flag `TOTP_REQUIRED`, default: false)
+- Audit trail: snapshot każdej oferty (PDF + JSON + MD5 + timestamp ISO) — immutable
+
+### Security
+- TLS: Caddy v2 auto-TLS Let's Encrypt (HSTS preload, max-age=31536000)
+- CSP nonce-based via Next.js middleware (no unsafe-inline scripts)
+- Security headers: X-Frame-Options DENY, X-Content-Type-Options nosniff, Referrer-Policy strict-origin-when-cross-origin
+- Rate limiting: Caddy (1000 req/min per IP) + Hono (login: 5/15min, PDF: 30/hour)
+- pg_dump daily backup → Backblaze B2 (encrypted at rest, 7d/4w/12m retention)
+- gitleaks pre-commit hook (secret detection)
+- OWASP ZAP baseline scan w CI (weekly + push)
+- Trivy container scan w CI (HIGH+CRITICAL → fail)
+- CodeQL static analysis (JS/TS)
+- SBOM: cyclonedx-bom w CI artifacts
+
+---
+
+## Instrukcja uzupełniania CHANGELOG
+
+### Kiedy dodawać wpis
+- Przed każdym deploy na produkcję — wpis w `## [Unreleased]` → po deploy → move do `## [x.y.z]`
+- Każda zmiana mająca wpływ na Jana (użytkownika) lub na bezpieczeństwo
+
+### Semantyczne wersjonowanie dla single-user webapp
+- **MAJOR (x.0.0):** zmiana wymagająca re-onboardingu Jana (nowy flow, zmiana UI paradigm)
+- **MINOR (1.x.0):** nowa funkcja (np. nowy typ PDF, nowe pole wyceny, TOTP enforcement)
+- **PATCH (1.0.x):** bugfix, security patch, config change bez nowej funkcji
+
+### Sekcje keepachangelog
+- **Added** — nowe funkcje
+- **Changed** — zmiana istniejącego zachowania
+- **Deprecated** — funkcje do usunięcia w przyszłości
+- **Removed** — usunięte funkcje
+- **Fixed** — naprawione błędy
+- **Security** — poprawki bezpieczeństwa (zawsze opisz CVSS score jeśli relevantne)
+
+### Przykład wpisu PATCH (security fix)
+```markdown
+## [1.0.1] - 2026-06-15
+
+### Security
+- Zaktualizowano zależności: next 14.2.36 (fix CVE-2026-XXXX, CVSS 6.5 Medium — path traversal w static files)
+- Zaktualizowano: @sentry/nextjs 10.x.y (fix memory leak w error boundary)
+```
+
+### Przykład wpisu MINOR (nowa funkcja)
+```markdown
+## [1.1.0] - 2026-07-01
+
+### Added
+- Wariant PDF "z logo" — Jan może wybrać opcję z logiem firmy na ofertach
+- Export XLSX ofert z archiwum (format Excel dla księgowości)
+
+### Security
+- TOTP_REQUIRED zmienione na true (wymagane przed planowanym audytem)
+```

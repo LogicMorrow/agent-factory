@@ -1,0 +1,43 @@
+# webapp-cicd-templates — konfiguracja projektu
+#
+# Skopiuj do: .github/cicd-variables.yaml
+# Zmienne renderowane do workflows/ przez sed lub envsubst (v1.0: recznie, v1.1: /pack automatycznie)
+#
+# Dokumentacja flag: library/skills/webapp/webapp-cicd-templates/SKILL.md
+# Sekcja: "Konfiguracja — variables.yaml"
+
+# Tryb deploymentu
+# simple   — deploy tylko z main, bez staging (MVP/PoC)
+# staged   — develop → staging (auto), main → production (manual approval) [DEFAULT]
+# preview  — kazdy PR dostaje ephemeral URL — stub v1.0, implementacja v1.1
+deployment_mode: staged
+
+# Docelowa platforma deploy
+# coolify     — webhook do Coolify API (default dla nowych projektow) [DEFAULT]
+# ssh-compose — docker compose via SSH (dla projektow bez Coolify, np. CRM retrofit)
+deploy_target: coolify
+
+# Prog pokrycia testow (linie) blokujacy CI
+# Zakres: 0-100
+# 0   — pomijaj gate coverage (CRM retrofit startuje z 0, podnos iteracyjnie)
+# 70  — default (blokuje merge gdy coverage < 70%) [DEFAULT]
+# 80  — zalecane docelowo (zgodnie z webapp-standards/testing.md)
+coverage_threshold: 70
+
+# Tryb rollbacku po failed deploy
+# manual-only   — tylko alert w GHA Summary, zero retry, zero API (CRM retrofit default)
+# retry-manual  — retry 1x po 30s + health check, jesli fail → alert [DEFAULT]
+# auto          — TODO v1.1 (wymaga Coolify API token + rollback endpoint)
+#                 UWAGA: ustawienie "auto" w v1.0 = blad "not implemented" w workflow
+rollback_mode: retry-manual
+
+# Slack alerty przy deploy fail
+# false — wylaczone [DEFAULT]
+# true  — wymaga sekretu SLACK_WEBHOOK_URL w GitHub (patrz README-secrets.md)
+slack_alerts: false
+
+# Node.js matrix w CI
+# Wersje do przetestowania rownolegle
+# Node 18 EOL kwiecien 2025 — nie dodawaj
+# Node 20 LTS + Node 22 LTS — standard fabryki
+node_versions: [20, 22]

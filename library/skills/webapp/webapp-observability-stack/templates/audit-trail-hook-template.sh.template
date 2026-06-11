@@ -1,0 +1,120 @@
+#!/usr/bin/env bash
+# audit-trail-hook-template.sh — Audit trail snapshot hook for {{PROJECT_NAME}}
+#
+# TRIGGER: PostToolUse (after PDF write) or UserPromptSubmit (before offer save)
+# Configure in .claude/settings.json hooks section:
+#   "PostToolUse": [{"matcher": "Write", "hooks": [{"type": "command", "command": "..."}]}]
+#
+# ACTION: Snapshot generated PDF + JSON metadata + MD5 hash + timestamp ISO
+#         → artifacts/audit-trail/{{YYYY}}/{{MM}}/{{OFFER_ID}}/
+#         chmod 0444 (immutable — cannot be overwritten after creation)
+#         Append entry to artifacts/audit-trail/index.jsonl
+#
+# RODO compliance: retencja 5 lat (1826 dni) — zgodne z art. 17 RODO + księgowość PL
+# Immutability: chmod 0444 prevents accidental overwrite — deliberate deletion still possible
+# (for RODO erasure on request — see audit-trail-patterns.md)
+#
+# Requirements: bash 4+, jq 1.6+, md5sum (coreutils), openssl (optional for SHA256)
+# ─────────────────────────────────────────────────────────────────────────────
+
+set -euo pipefail
+
+# ─── Configuration ───────────────────────────────────────────────────────────
+PROJECT_ROOT="${PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
+AUDIT_BASE_DIR="${PROJECT_ROOT}/artifacts/audit-trail"
+AUDIT_INDEX="${AUDIT_BASE_DIR}/index.jsonl"
+RETENTION_DAYS=1826  # 5 years (RODO + PL accounting)
+
+# ─── Input (from environment or arguments) ───────────────────────────────────
+# When called from Claude hook, these are set in environment:
+OFFER_ID="${OFFER_ID:-${1:-}}"          # e.g. "oferta-2026-001"
+SOURCE_PDF="${SOURCE_PDF:-${2:-}}"      # absolute path to generated PDF
+SOURCE_JSON="${SOURCE_JSON:-${3:-}}"    # absolute path to offer JSON data
+ACTOR="${ACTOR:-jankowalski}"              # who created the offer
+
+if [[ -z "${OFFER_ID}" ]]; then
+  echo "ERROR: OFFER_ID is required" >&2
+  exit 1
+fi
+
+# ─── Compute destination paths ───────────────────────────────────────────────
+TIMESTAMP_ISO=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+YYYY=$(date -u +"%Y")
+MM=$(date -u +"%m")
+DEST_DIR="${AUDIT_BASE_DIR}/${YYYY}/${MM}/${OFFER_ID}"
+
+if [[ -d "${DEST_DIR}" ]]; then
+  echo "WARN: Audit snapshot already exists at ${DEST_DIR} — skipping (immutable)" >&2
+  exit 0
+fi
+
+mkdir -p "${DEST_DIR}"
+
+# ─── Copy and hash PDF ───────────────────────────────────────────────────────
+if [[ -n "${SOURCE_PDF}" && -f "${SOURCE_PDF}" ]]; then
+  PDF_DEST="${DEST_DIR}/oferta.pdf"
+  cp "${SOURCE_PDF}" "${PDF_DEST}"
+  PDF_MD5=$(md5sum "${PDF_DEST}" | awk '{print $1}')
+  PDF_SIZE=$(stat -c%s "${PDF_DEST}" 2>/dev/null || stat -f%z "${PDF_DEST}")
+else
+  PDF_DEST=""
+  PDF_MD5=""
+  PDF_SIZE=0
+  echo "WARN: No PDF source provided — snapshot without PDF" >&2
+fi
+
+# ─── Copy and hash JSON ──────────────────────────────────────────────────────
+if [[ -n "${SOURCE_JSON}" && -f "${SOURCE_JSON}" ]]; then
+  JSON_DEST="${DEST_DIR}/oferta.json"
+  cp "${SOURCE_JSON}" "${JSON_DEST}"
+  JSON_MD5=$(md5sum "${JSON_DEST}" | awk '{print $1}')
+else
+  JSON_DEST=""
+  JSON_MD5=""
+  echo "WARN: No JSON source provided — snapshot without JSON" >&2
+fi
+
+# ─── Write metadata manifest ──────────────────────────────────────────────────
+MANIFEST_PATH="${DEST_DIR}/manifest.json"
+cat > "${MANIFEST_PATH}" <<EOF
+{
+  "offer_id": "${OFFER_ID}",
+  "snapshot_at": "${TIMESTAMP_ISO}",
+  "actor": "${ACTOR}",
+  "files": {
+    "pdf": {
+      "path": "oferta.pdf",
+      "md5": "${PDF_MD5}",
+      "size_bytes": ${PDF_SIZE}
+    },
+    "json": {
+      "path": "oferta.json",
+      "md5": "${JSON_MD5}"
+    }
+  },
+  "retention_until": "$(date -u -d "+${RETENTION_DAYS} days" +"%Y-%m-%d" 2>/dev/null || date -u -v+${RETENTION_DAYS}d +"%Y-%m-%d")",
+  "schema_version": "1.0"
+}
+EOF
+
+# ─── Make all files immutable (chmod 0444) ───────────────────────────────────
+# Prevents accidental overwrite. Deliberate deletion still possible (RODO erasure).
+chmod 0444 "${DEST_DIR}"/*.pdf 2>/dev/null || true
+chmod 0444 "${DEST_DIR}"/*.json 2>/dev/null || true
+# Note: directory itself stays writable (needed for ls, etc.)
+
+# ─── Append to index.jsonl ───────────────────────────────────────────────────
+mkdir -p "$(dirname "${AUDIT_INDEX}")"
+INDEX_ENTRY=$(jq -c -n \
+  --arg offer_id "${OFFER_ID}" \
+  --arg snapshot_at "${TIMESTAMP_ISO}" \
+  --arg dest_dir "${DEST_DIR}" \
+  --arg actor "${ACTOR}" \
+  --arg pdf_md5 "${PDF_MD5}" \
+  '{offer_id: $offer_id, snapshot_at: $snapshot_at, dest_dir: $dest_dir, actor: $actor, pdf_md5: $pdf_md5}')
+
+echo "${INDEX_ENTRY}" >> "${AUDIT_INDEX}"
+
+echo "OK: Audit snapshot created at ${DEST_DIR}"
+echo "    Manifest: ${MANIFEST_PATH}"
+echo "    Index: ${AUDIT_INDEX}"

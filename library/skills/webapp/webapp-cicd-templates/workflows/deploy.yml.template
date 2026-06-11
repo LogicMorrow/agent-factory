@@ -1,0 +1,230 @@
+# Deploy Workflow — webapp-cicd-templates v1.0
+#
+# Zmienne do podmiany przed uzyciem (sed lub envsubst):
+#   {{PROJECT_NAME}}          — nazwa projektu
+#   {{COOLIFY_APP_ID}}        — ID aplikacji w Coolify (znajdz w Settings aplikacji)
+#   {{HEALTH_URL}}            — pelny URL health-check (np. https://app.example.com/api/health)
+#   {{DEPLOY_PATH}}           — sciezka na serwerze (np. /opt/myapp) — tylko ssh-compose
+#   {{STAGING_URL}}           — URL staging health-check
+#   {{PROD_URL}}              — URL prod health-check
+#
+# Flagi z variables.yaml (podmien komentarze na aktywna konfiguracje):
+#   deployment_mode: staged | simple | preview(stub)
+#   deploy_target:   coolify | ssh-compose
+#   rollback_mode:   retry-manual | manual-only | auto(TODO v1.1)
+#
+# WAŻNE: rollback_mode: auto jest niezaimplementowany w v1.0.
+# Jesli ustawisz auto — workflow zakonczy sie bledem "not implemented".
+# Wersja implementujaca: v1.1 (wymaga Coolify API token + rollback endpoint).
+
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main       # deployment_mode: staged → production (manual approval)
+      - develop    # deployment_mode: staged → staging (auto)
+      # Dla deployment_mode: simple → tylko main, usun wiersz develop
+
+# GitHub Environments: "staging" (auto) + "production" (manual approval)
+# Konfiguracja: Settings → Environments w GitHub UI
+# Patrz: README-secrets.md
+
+jobs:
+  # ============================================================
+  # STAGING DEPLOY
+  # Uruchamiany przy push do develop (deployment_mode: staged)
+  # Lub przy push do main (deployment_mode: simple — wtedy jeden job)
+  # ============================================================
+  deploy-staging:
+    name: Deploy → Staging
+    runs-on: ubuntu-latest
+    environment: staging
+    # deployment_mode: staged — deploy staging tylko z develop
+    # deployment_mode: simple — zmien na: if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/develop'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ---- deploy_target: coolify ----
+      # Odkomentuj ten blok gdy deploy_target: coolify
+      # Zakomentuj blok ssh-compose ponizej
+      - name: Trigger Coolify deploy (staging)
+        run: |
+          echo "Triggering Coolify deploy for staging..."
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X POST "${{ secrets.COOLIFY_WEBHOOK_URL }}" \
+            -H "Authorization: Bearer ${{ secrets.COOLIFY_WEBHOOK_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{"appId": "{{COOLIFY_APP_ID}}"}')
+          if [ "$RESPONSE" != "200" ]; then
+            echo "Coolify webhook returned: $RESPONSE"
+            exit 1
+          fi
+          echo "Coolify deploy triggered (fire-and-forget — health check nastepuje)"
+
+      # ---- deploy_target: ssh-compose ----
+      # Odkomentuj ten blok gdy deploy_target: ssh-compose
+      # Zakomentuj blok coolify powyzej
+      #
+      # - name: Deploy via SSH + docker-compose (staging)
+      #   uses: appleboy/ssh-action@v1
+      #   with:
+      #     host: ${{ secrets.DEPLOY_HOST }}
+      #     username: ${{ secrets.DEPLOY_USER }}
+      #     key: ${{ secrets.DEPLOY_SSH_KEY }}
+      #     script: |
+      #       cd {{DEPLOY_PATH}}
+      #       git pull origin develop
+      #       docker compose pull
+      #       docker compose up -d --build
+      #       echo "SSH deploy done"
+
+      - name: Health check — staging (max 5 min)
+        run: |
+          MAX_ATTEMPTS=30
+          INTERVAL=10
+          URL="{{STAGING_URL}}/api/health"
+          echo "Polling $URL (${MAX_ATTEMPTS}x ${INTERVAL}s)..."
+          for i in $(seq 1 $MAX_ATTEMPTS); do
+            HTTP=$(curl -s -o /dev/null -w "%{http_code}" "$URL" || echo "000")
+            echo "Attempt $i/$MAX_ATTEMPTS: HTTP $HTTP"
+            if [ "$HTTP" = "200" ]; then
+              echo "Health check passed."
+              exit 0
+            fi
+            sleep $INTERVAL
+          done
+          echo "Health check FAILED after ${MAX_ATTEMPTS} attempts."
+          exit 1
+
+      # rollback_mode: manual-only
+      - name: Alert on deploy failure (manual-only)
+        if: failure
+        run: |
+          echo "::error::Staging deploy FAILED. Manual rollback required."
+          echo "Rollback steps:"
+          echo "  Coolify: UI → Deployments → poprzedni green → Redeploy"
+          echo "  SSH: ssh ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} && cd {{DEPLOY_PATH}} && git checkout <prev-sha> && docker compose up -d"
+
+      # rollback_mode: retry-manual (DEFAULT)
+      # Odkomentuj i zakomentuj blok manual-only powyzej
+      #
+      # - name: Retry deploy once (retry-manual)
+      #   if: failure
+      #   run: |
+      #     echo "First attempt failed. Retrying in 30s..."
+      #     sleep 30
+      #     RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
+      #       -X POST "${{ secrets.COOLIFY_WEBHOOK_URL }}" \
+      #       -H "Authorization: Bearer ${{ secrets.COOLIFY_WEBHOOK_TOKEN }}" \
+      #       -H "Content-Type: application/json" \
+      #       -d '{"appId": "{{COOLIFY_APP_ID}}"}')
+      #     echo "Retry webhook: $RESPONSE"
+      #
+      # - name: Health check after retry
+      #   if: failure
+      #   run: |
+      #     sleep 60
+      #     HTTP=$(curl -s -o /dev/null -w "%{http_code}" "{{STAGING_URL}}/api/health" || echo "000")
+      #     if [ "$HTTP" != "200" ]; then
+      #       echo "::error::Retry also failed. Manual rollback required."
+      #       exit 1
+      #     fi
+
+      # rollback_mode: auto — TODO v1.1
+      # - name: Auto rollback (NOT IMPLEMENTED v1.0)
+      #   if: failure
+      #   run: |
+      #     echo "::error::rollback_mode: auto is not implemented in v1.0."
+      #     echo "Set rollback_mode: retry-manual or manual-only."
+      #     exit 1
+
+      # Opcjonalny Slack alert (slack_alerts: true)
+      # Odkomentuj jesli slack_alerts: true w variables.yaml
+      #
+      # - name: Slack alert on failure
+      #   if: failure
+      #   run: |
+      #     curl -s -X POST "${{ secrets.SLACK_WEBHOOK_URL }}" \
+      #       -H "Content-Type: application/json" \
+      #       -d "{\"text\":\"Staging deploy FAILED for {{PROJECT_NAME}}. Commit: ${{ github.sha }}\"}"
+
+  # ============================================================
+  # PRODUCTION DEPLOY
+  # Uruchamiany przy push do main
+  # Wymaga manual approval przez GitHub Environment "production"
+  # ============================================================
+  deploy-production:
+    name: Deploy → Production
+    runs-on: ubuntu-latest
+    environment: production   # manual approval required (skonfiguruj w GitHub UI)
+    if: github.ref == 'refs/heads/main'
+    # deployment_mode: staged — czeka na deploy-staging (usun needs jesli simple)
+    needs: []   # Dla staged: needs: [deploy-staging] — odkomentuj i usun te linie
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ---- deploy_target: coolify ----
+      - name: Trigger Coolify deploy (production)
+        run: |
+          echo "Triggering Coolify deploy for production..."
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X POST "${{ secrets.COOLIFY_WEBHOOK_URL }}" \
+            -H "Authorization: Bearer ${{ secrets.COOLIFY_WEBHOOK_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{"appId": "{{COOLIFY_APP_ID}}"}')
+          if [ "$RESPONSE" != "200" ]; then
+            echo "Coolify webhook returned: $RESPONSE"
+            exit 1
+          fi
+          echo "Coolify deploy triggered."
+
+      # ---- deploy_target: ssh-compose ----
+      # - name: Deploy via SSH + docker-compose (production)
+      #   uses: appleboy/ssh-action@v1
+      #   with:
+      #     host: ${{ secrets.DEPLOY_HOST }}
+      #     username: ${{ secrets.DEPLOY_USER }}
+      #     key: ${{ secrets.DEPLOY_SSH_KEY }}
+      #     script: |
+      #       cd {{DEPLOY_PATH}}
+      #       git pull origin main
+      #       docker compose pull
+      #       docker compose up -d --build
+
+      - name: Health check — production (max 5 min)
+        run: |
+          MAX_ATTEMPTS=30
+          INTERVAL=10
+          URL="{{PROD_URL}}/api/health"
+          echo "Polling $URL (${MAX_ATTEMPTS}x ${INTERVAL}s)..."
+          for i in $(seq 1 $MAX_ATTEMPTS); do
+            HTTP=$(curl -s -o /dev/null -w "%{http_code}" "$URL" || echo "000")
+            echo "Attempt $i/$MAX_ATTEMPTS: HTTP $HTTP"
+            if [ "$HTTP" = "200" ]; then
+              echo "Health check passed."
+              exit 0
+            fi
+            sleep $INTERVAL
+          done
+          echo "::error::Health check FAILED — production deploy may be broken."
+          exit 1
+
+      - name: Alert on production failure
+        if: failure
+        run: |
+          echo "::error::PRODUCTION DEPLOY FAILED. Immediate manual rollback required."
+          echo "Coolify: UI → Deployments → poprzedni green → Redeploy"
+          echo "SSH: ssh ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} && cd {{DEPLOY_PATH}} && git checkout <prev-sha> && docker compose up -d"
+          echo "Post-mortem: knowledge-base/reflections/ — patrz SKILL.md sekcja Rollback"
+
+      # Opcjonalny Slack alert
+      # - name: Slack alert on production failure
+      #   if: failure
+      #   run: |
+      #     curl -s -X POST "${{ secrets.SLACK_WEBHOOK_URL }}" \
+      #       -H "Content-Type: application/json" \
+      #       -d "{\"text\":\"PRODUCTION deploy FAILED for {{PROJECT_NAME}}. IMMEDIATE ACTION REQUIRED. Commit: ${{ github.sha }}\"}"

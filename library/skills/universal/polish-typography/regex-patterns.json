@@ -1,0 +1,224 @@
+{
+  "schema_version": 1,
+  "last_updated": "2026-05-13",
+  "description": "Regex patterns dla polish-proofreader agenta. Każdy pattern: id, regex (PCRE), suggested replacement, confidence, rule reference w common-errors.md. Whitelist scope: skip jeśli wewnątrz code block / className / inline code.",
+  "whitelisted_scope": {
+    "code_blocks_fenced": "^```[\\s\\S]*?```$",
+    "inline_code": "`[^`]*?`",
+    "jsx_className": "className=\"[^\"]*?\"",
+    "jsx_attribute_strings": "(?:href|src|alt|className|id|key|ref)=\"[^\"]*?\"",
+    "url_path": "https?://[^\\s]+|/[a-zA-Z0-9_./-]+",
+    "frontmatter_yaml": "^---[\\s\\S]*?^---$"
+  },
+  "whitelisted_terms_ai_domain": [
+    "prompt", "LLM", "embedding", "agent", "agenty", "agenci", "workflow",
+    "API", "tool", "RAG", "fine-tuning", "inference", "token", "context",
+    "MCP", "Claude", "GPT", "Sonnet", "Opus", "Haiku", "ChatGPT",
+    "freelance", "freelancing", "cold mailing", "B2B", "outreach", "lead-gen",
+    "pipeline", "analytics", "dashboard", "SQL", "Python", "pandas",
+    "notebook", "ETL", "BI", "Next.js", "React", "Tailwind", "TypeScript",
+    "Framer Motion", "Vercel", "LogicMorrow", "Anthropic", "OpenAI",
+    "LinkedIn", "GitHub", "Stack Overflow"
+  ],
+  "patterns": [
+    {
+      "id": "PL-001",
+      "rule_ref": "common-errors.md#1",
+      "category": "orthography",
+      "regex": "\\bz\\s+stała\\s+się\\b",
+      "suggested": "stała się",
+      "confidence": "HIGH",
+      "description": "z stała się → stała się"
+    },
+    {
+      "id": "PL-002",
+      "rule_ref": "common-errors.md#2",
+      "category": "orthography",
+      "regex": "\\bpo\\s+przez\\b",
+      "suggested": "poprzez",
+      "confidence": "HIGH",
+      "description": "po przez → poprzez"
+    },
+    {
+      "id": "PL-003",
+      "rule_ref": "common-errors.md#3",
+      "category": "orthography",
+      "regex": "\\bco\\s+raz\\s+(więcej|mniej|bardziej|lepiej|częściej)",
+      "suggested": "coraz $1",
+      "confidence": "HIGH",
+      "description": "co raz + komparatyw → coraz"
+    },
+    {
+      "id": "PL-004",
+      "rule_ref": "common-errors.md#4",
+      "category": "orthography",
+      "regex": "\\bnapewno\\b",
+      "suggested": "na pewno",
+      "confidence": "HIGH",
+      "description": "napewno → na pewno"
+    },
+    {
+      "id": "PL-005",
+      "rule_ref": "common-errors.md#5",
+      "category": "orthography",
+      "regex": "\\bwogóle\\b",
+      "suggested": "w ogóle",
+      "confidence": "HIGH",
+      "description": "wogóle → w ogóle"
+    },
+    {
+      "id": "PL-006",
+      "rule_ref": "common-errors.md#6",
+      "category": "orthography",
+      "regex": "\\bna\\s+prawdę\\b(?!\\s+(?:trafić|natrafić))",
+      "suggested": "naprawdę",
+      "confidence": "HIGH",
+      "description": "na prawdę → naprawdę (chyba że 'trafić na prawdę')"
+    },
+    {
+      "id": "PL-007",
+      "rule_ref": "common-errors.md#10",
+      "category": "punctuation",
+      "regex": "\\bPomimo[,]?\\s+że\\b",
+      "suggested": "Mimo że",
+      "confidence": "HIGH",
+      "description": "Pomimo, że / Pomimo że → Mimo że"
+    },
+    {
+      "id": "PL-008",
+      "rule_ref": "common-errors.md#11",
+      "category": "typography",
+      "regex": "(?<![\\w/=:])\"([^\"\\n]{3,200})\"(?![\\w/=:])",
+      "suggested": "„$1\"",
+      "confidence": "MEDIUM",
+      "description": "Cudzysłowy proste \"...\" → drukarskie „...\" (skip w kodzie/atrybutach)"
+    },
+    {
+      "id": "PL-009",
+      "rule_ref": "common-errors.md#12",
+      "category": "typography",
+      "regex": "\\s+-\\s+(?=[A-ZĄĆĘŁŃÓŚŹŻa-ząćęłńóśźż])",
+      "suggested": " — ",
+      "confidence": "MEDIUM",
+      "description": "Spacjowany dywiz ' - ' → półpauza ' — '"
+    },
+    {
+      "id": "PL-010",
+      "rule_ref": "common-errors.md#14",
+      "category": "typography",
+      "regex": "\\b([aiouwz])\\s+([A-ZĄĆĘŁŃÓŚŹŻa-ząćęłńóśźż])",
+      "suggested": "$1&nbsp;$2",
+      "confidence": "MEDIUM",
+      "description": "Jednoznakowy spójnik + spacja → nbsp (case-sensitive: małe litery a/i/o/u/w/z)"
+    },
+    {
+      "id": "PL-011",
+      "rule_ref": "common-errors.md#15",
+      "category": "typography",
+      "regex": "(\\d+)\\s*(%|zł|kg|km|min|sek|godz|mln|tys|MB|GB|TB|°)\\b",
+      "suggested": "$1&nbsp;$2",
+      "confidence": "MEDIUM",
+      "description": "Liczba + jednostka → nbsp. Wyjątek: 5°C bez spacji (preserve)"
+    },
+    {
+      "id": "PL-012",
+      "rule_ref": "common-errors.md#16",
+      "category": "typography",
+      "regex": "\\.{3}(?!\\.)",
+      "suggested": "…",
+      "confidence": "HIGH",
+      "description": "... (3 kropki) → … (wielokropek U+2026)"
+    },
+    {
+      "id": "PL-013",
+      "rule_ref": "common-errors.md#17",
+      "category": "style",
+      "regex": "\\bCelem\\s+(\\w+ania|\\w+enia)\\b",
+      "suggested": "Aby [verb], ",
+      "confidence": "LOW",
+      "description": "Celem [genitive] → Aby [verb] (style suggestion)"
+    },
+    {
+      "id": "PL-014",
+      "rule_ref": "common-errors.md#19",
+      "category": "style",
+      "regex": "\\bilość\\s+(klientów|firm|projektów|osób|użytkowników|zamówień|leadów|kandydatów|maili)",
+      "suggested": "liczba $1",
+      "confidence": "HIGH",
+      "description": "ilość + policzalne → liczba"
+    },
+    {
+      "id": "PL-015",
+      "rule_ref": "common-errors.md#20",
+      "category": "style",
+      "regex": "\\bw\\s+roku\\s+(\\d{4})\\b",
+      "suggested": "w $1 roku",
+      "confidence": "MEDIUM",
+      "description": "w roku XXXX → w XXXX roku (kolokacja PL)"
+    },
+    {
+      "id": "PL-016",
+      "rule_ref": "common-errors.md#22",
+      "category": "style",
+      "regex": "\\b(tudzież|albowiem|atoli|aczkolwiek)\\b",
+      "suggested": "[oraz|ponieważ|jednak|chociaż]",
+      "confidence": "MEDIUM",
+      "description": "Archaizmy → współczesne odpowiedniki"
+    },
+    {
+      "id": "PL-017",
+      "rule_ref": "common-errors.md#23",
+      "category": "style",
+      "regex": "\\bspożytkow(ał|ał[am]|ano|ać)\\b",
+      "suggested": "wykorzystać",
+      "confidence": "MEDIUM",
+      "description": "spożytkować → wykorzystać (bardziej naturalne)"
+    },
+    {
+      "id": "PL-018",
+      "rule_ref": "common-errors.md#26",
+      "category": "format-mdx",
+      "regex": "^(#{1,6}\\s+.+)\\.\\s*$",
+      "suggested": "$1",
+      "confidence": "HIGH",
+      "description": "Kropka na końcu nagłówka MDX → usuń"
+    },
+    {
+      "id": "PL-019",
+      "rule_ref": "common-errors.md#8",
+      "category": "punctuation",
+      "regex": "\\b(Wiem|wiem|Myślę|myślę|Mówię|mówię|Sądzę|sądzę|Uważam|uważam)\\s+że\\b",
+      "suggested": "$1, że",
+      "confidence": "HIGH",
+      "description": "Brak przecinka przed 'że' po czasownikach myślenia"
+    },
+    {
+      "id": "PL-020",
+      "rule_ref": "common-errors.md#1",
+      "category": "orthography",
+      "regex": "\\bb2b\\b",
+      "suggested": "B2B",
+      "confidence": "HIGH",
+      "description": "b2b → B2B (akronim wielkimi)"
+    }
+  ],
+  "false_positive_whitelist_examples": [
+    {
+      "context": "code_block",
+      "example": "```\\nconst a = 5;\\n```",
+      "rationale": "kod nie podlega lintowi PL"
+    },
+    {
+      "context": "className",
+      "example": "className=\"text-emerald-400\"",
+      "rationale": "Tailwind class nie jest tekstem do czytania"
+    },
+    {
+      "context": "url",
+      "example": "https://example.com/o-mnie",
+      "rationale": "URL slug po angielsku/transliterated"
+    }
+  ],
+  "next_review_date": "2026-08-13",
+  "promotion_to_lessons_jsonl_threshold": "≥3 nowe patterny zaakceptowane przez operatora → promote do lessons.jsonl + bump version"
+}

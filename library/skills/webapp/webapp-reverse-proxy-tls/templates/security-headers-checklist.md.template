@@ -1,0 +1,181 @@
+# Security Headers — Checklist weryfikacji po deploy
+# Skill: webapp-reverse-proxy-tls v1.0.0
+# Zasada #15 CLAUDE.md pkt 9-10
+
+## Projekt: {{PROJECT_NAME}} | Domena: {{PROD_DOMAIN}} | Data: {{DATE}}
+
+---
+
+## 1. Curl test — każdy header ręcznie
+
+```bash
+DOMAIN="{{PROD_DOMAIN}}"
+
+# Pobierz wszystkie headers i zapisz do pliku
+curl -sI "https://${DOMAIN}" > /tmp/headers.txt
+cat /tmp/headers.txt
+```
+
+### Weryfikacja każdego headera (expect: wszystkie PASS)
+
+```bash
+DOMAIN="{{PROD_DOMAIN}}"
+
+# HSTS
+echo "--- HSTS ---"
+curl -sI "https://${DOMAIN}" | grep -i "strict-transport"
+# Oczekiwane: Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+
+# X-Frame-Options
+echo "--- X-Frame-Options ---"
+curl -sI "https://${DOMAIN}" | grep -i "x-frame"
+# Oczekiwane: X-Frame-Options: DENY
+
+# X-Content-Type-Options
+echo "--- X-Content-Type-Options ---"
+curl -sI "https://${DOMAIN}" | grep -i "x-content-type"
+# Oczekiwane: X-Content-Type-Options: nosniff
+
+# Referrer-Policy
+echo "--- Referrer-Policy ---"
+curl -sI "https://${DOMAIN}" | grep -i "referrer"
+# Oczekiwane: Referrer-Policy: strict-origin-when-cross-origin
+
+# Permissions-Policy
+echo "--- Permissions-Policy ---"
+curl -sI "https://${DOMAIN}" | grep -i "permissions"
+# Oczekiwane: Permissions-Policy: camera=, microphone=, geolocation=, ...
+
+# CSP
+echo "--- Content-Security-Policy ---"
+curl -sI "https://${DOMAIN}" | grep -i "content-security"
+# Oczekiwane: Content-Security-Policy: default-src 'self'; script-src 'nonce-...' 'strict-dynamic'; ...
+
+# Sprawdź czy NIE ma 'unsafe-eval' w CSP produkcji
+echo "--- CSP unsafe-eval check (should be empty) ---"
+curl -sI "https://${DOMAIN}" | grep -i "content-security" | grep "unsafe-eval"
+# Oczekiwane: PUSTA linia (unsafe-eval NIE powinna być w produkcji)
+
+# Sprawdź brak Server header (ukryte przez Caddy)
+echo "--- Server header (should be empty) ---"
+curl -sI "https://${DOMAIN}" | grep -i "^server:"
+# Oczekiwane: PUSTA linia (Caddy usuwa Server header)
+```
+
+---
+
+## 2. Narzędzia online (target: wszystkie A+)
+
+### securityheaders.com
+
+```
+URL: https://securityheaders.com/?q={{PROD_DOMAIN}}&followRedirects=on
+Target: Grade A lub A+
+```
+
+Wymagane by checklist:
+- [ ] Strict-Transport-Security: present + PASS
+- [ ] Content-Security-Policy: present (nie WARN)
+- [ ] X-Frame-Options: present + DENY
+- [ ] X-Content-Type-Options: present + nosniff
+- [ ] Referrer-Policy: present
+- [ ] Permissions-Policy: present
+
+### observatory.mozilla.org
+
+```
+URL: https://observatory.mozilla.org/analyze/{{PROD_DOMAIN}}
+Target: Grade A+ (100/100)
+```
+
+Wymagane:
+- [ ] Content Security Policy: 25/25
+- [ ] Cookies: SameSite, HttpOnly, Secure flags (iron-session ustawia automatycznie)
+- [ ] HTTPS: present
+- [ ] HSTS: present + preload
+- [ ] Redirects: www → apex HTTPS
+
+### csp-evaluator.withgoogle.com
+
+```
+URL: https://csp-evaluator.withgoogle.com/
+```
+
+Wklej wartość headera CSP (bez `Content-Security-Policy:`).
+Target: "No high severity findings"
+
+Akceptowalne warnings (NIE errors):
+- `'unsafe-inline'` w `style-src` — Tailwind wymaga, CSS XSS nie jest krytyczne
+- `report-uri` deprecated → `report-to` — opcjonalna migracja
+
+NIE akceptowalne:
+- `'unsafe-eval'` w script-src → BLOKER
+- Wildcards `*` w script-src → BLOKER
+- `data:` w script-src → BLOKER
+
+---
+
+## 3. TLS certificate check
+
+```bash
+DOMAIN="{{PROD_DOMAIN}}"
+
+# Weryfikacja certyfikatu Let's Encrypt
+echo | openssl s_client -connect "${DOMAIN}:443" -servername "${DOMAIN}" 2>/dev/null \
+  | openssl x509 -noout -dates -issuer
+
+# Oczekiwane:
+#   notAfter=<data > 30 dni>
+#   issuer=O=Let's Encrypt
+
+# TLS grade
+# Narzędzie: https://www.ssllabs.com/ssltest/analyze.html?d={{PROD_DOMAIN}}
+# Target: Grade A
+```
+
+---
+
+## 4. Rate limit test
+
+```bash
+DOMAIN="{{PROD_DOMAIN}}"
+
+# Test login rate limit (5 prób / 15 min)
+echo "--- Login rate limit ---"
+for i in $(seq 1 7); do
+  STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+    -X POST "https://${DOMAIN}/api/auth/login" \
+    -H "Content-Type: application/json" \
+    -d '{"email":"test@test.pl","password":"wrongpassword"}')
+  echo "Próba $i: HTTP $STATUS"
+done
+# Oczekiwane: próby 1-5 → 401 (auth fail), próby 6-7 → 429 (rate limited)
+
+# Test X-RateLimit headers
+echo "--- Rate limit headers ---"
+curl -sI -X POST "https://${DOMAIN}/api/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{"email":"x","password":"x"}' | grep -i "x-ratelimit"
+# Oczekiwane: X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset
+```
+
+---
+
+## 5. Status po weryfikacji
+
+| Check | Status | Notes |
+|---|---|---|
+| HSTS present + preload | | |
+| X-Frame-Options DENY | | |
+| X-Content-Type-Options nosniff | | |
+| Referrer-Policy strict-origin | | |
+| CSP bez unsafe-eval | | |
+| securityheaders.com A+ | | |
+| observatory.mozilla.org A+ | | |
+| csp-evaluator no HIGH findings | | |
+| TLS Grade A (SSLLabs) | | |
+| Login rate limit 429 po 5 próbach | | |
+| **Zasada #15 pkt 9-10 PASS** | | Potwierdź przy quality-checker |
+
+**Data weryfikacji:** {{DATE}}
+**Weryfikował:** {{VERIFIED_BY}}

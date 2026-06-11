@@ -1,0 +1,53 @@
+# technical-docs-standards — zmienne konfiguracyjne
+#
+# Kopiuj do karty projektu (knowledge-base/projects/<slug>.md) lub do .github/cicd-variables.yaml
+# Wartości domyślne są konserwatywne (L1, enforcement_strict: false) — eskaluj świadomie.
+
+# ─── Poziom dojrzałości dokumentacji ──────────────────────────────────────────
+docs_maturity_level: L1
+# Enum: L1 | L2 | L3
+# L1 (MVP):        docs/README.md + docs/adr/ + docs/runbooks/deploy.md
+# L2 (production): + architecture/ + onboarding.md + runbooks/{rollback,incident-response} + api/
+# L3 (scale):      + security/ + postmortems/ + glossary.md + deployment diagram
+#
+# Jak ustawić:
+#   - Nowy projekt / POC → L1
+#   - Projekt z >1 deweloperem lub prod users → L2
+#   - Projekt z >3 deweloperami lub SLA wymaganiami → L3
+#   - Brak pola → skill defaultuje do L1 + emituje warning w CI
+#
+# CRM: L2
+# agent-factory: L2 (własny kontekst: knowledge-base/docs/adr/)
+
+# ─── Enforcement ──────────────────────────────────────────────────────────────
+enforcement_strict: false
+# true  → hard gates blokują merge (default dla L2+)
+# false → wszystko jako warning (default dla L1 lub faza retrofit)
+#
+# Rekomendacja: ustaw true po zakończeniu retroaktywnych ADR-ów i runbooków
+
+bypass_enabled: true
+# true  → label 'emergency-merge' + 'TECH-DEBT: <opis>' w PR body = bypass hard gates
+# false → bypass wyłączony (rekomendowane dla L3 z SLA)
+#
+# Nawet z bypass_enabled: true — wpis w docs/TECH_DEBT.md jest WYMAGANY
+
+# ─── Runtime walidatora ───────────────────────────────────────────────────────
+runtime: bash-yq
+# bash-yq → assets/scripts/validate-docs.sh (domyślny, zero Node deps)
+# node    → validate-docs.js (alternatywa dla non-GitHub runners)
+#           wymaga: js-yaml w devDependencies
+#           patrz: references/ci-integration.md → sekcja "Node runtime fallback"
+
+# ─── Dodatkowe opcje ─────────────────────────────────────────────────────────
+adr_review_threshold_days: 365
+# ADR accepted starszy niż N dni bez last_reviewed update → soft gate warning
+# Default: 365 (12 miesięcy)
+
+docs_readme_stale_days: 90
+# docs/README.md niezmieniony przez N dni → soft gate warning
+# Default: 90 dni
+
+require_erd_confirmation: true
+# true  → hard gate #4 aktywny (schema change bez ERD-updated w PR = FAIL)
+# false → wyłącz dla projektów bez relacyjnej bazy (np. pure event-driven, localStorage only)

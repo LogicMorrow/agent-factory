@@ -1,0 +1,123 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://agent-factory/schemas/calculator-rules-engine/rules-schema.json",
+  "title": "CalculatorRulesEngine Rules Schema",
+  "description": "JSON Schema dla rules-baseline.yaml i rules-override.yaml (calculator-rules-engine skill v1.0.0). Uzywany przez VSCode YAML Language Server do autocomplete i lintowania.",
+  "type": "object",
+  "required": ["meta", "pricing", "regional", "seasonal"],
+  "additionalProperties": false,
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": ["version", "baseline_date"],
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "description": "Semver MAJOR.MINOR.PATCH. MAJOR=zmiana struktury YAML (breaking). MINOR=nowy element pricing. PATCH=korekta wspolczynnika.",
+          "examples": ["1.0.0", "1.1.0", "2.0.0"]
+        },
+        "baseline_date": {
+          "type": "string",
+          "pattern": "^\\d{4}-(0[1-9]|1[0-2])$",
+          "description": "Rok i miesiac ostatniej aktualizacji cennika (YYYY-MM).",
+          "examples": ["2024-01", "2026-05"]
+        },
+        "disclaimer": {
+          "type": "string",
+          "description": "Klauzula odrzucenia odpowiedzialnosci — wyswietlana w UI kalkulatora.",
+          "default": "Widełki rynkowe PL 2024-2026. Faktyczne ceny zależą od regionu i technologii. Weryfikuj u lokalnego GW."
+        },
+        "override_source": {
+          "type": "string",
+          "description": "Nazwa projektu kalkulatora dla override file (identyfikacja zrodla). Tylko w rules-override.yaml.",
+          "examples": ["kalkulator-dom-jednorodzinny", "kalkulator-blizniaka"]
+        }
+      }
+    },
+    "pricing": {
+      "type": "object",
+      "description": "Cennik jednostkowy per element prac GW PL. Klucze: slug ASCII bez polskich znakow (np. fundament_plytowy, mur_ytong_24cm).",
+      "minProperties": 1,
+      "additionalProperties": {
+        "$ref": "#/definitions/PricingItem"
+      },
+      "examples": [
+        {
+          "fundament_plytowy": { "min": 350, "max": 500, "unit": "PLN/m²" },
+          "mur_ytong_24cm": { "min": 180, "max": 280, "unit": "PLN/m²" }
+        }
+      ]
+    },
+    "regional": {
+      "type": "object",
+      "description": "Mnozniki regionalne per wojewodztwo (klucze: ASCII slug, np. mazowieckie, dolnoslaskie). Zakres 0.85-1.20. Brakujace wojewodztwo → engine fallback 1.0 + WARN.",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "number",
+        "minimum": 0.85,
+        "maximum": 1.20,
+        "description": "Mnoznik regionalny. 1.0 = baseline (odpowiednik mazowieckiego)."
+      },
+      "examples": [
+        {
+          "mazowieckie": 1.20,
+          "dolnoslaskie": 1.18,
+          "mazowieckie": 0.95,
+          "małopolskie": 0.92
+        }
+      ]
+    },
+    "seasonal": {
+      "type": "object",
+      "description": "Mnozniki sezonowe per miesiac (klucze: '1'-'12' jako string). Zakres 0.95-1.15. Brakujacy miesiac → engine fallback 1.0 + WARN.",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "number",
+        "minimum": 0.95,
+        "maximum": 1.15,
+        "description": "Mnoznik sezonowy. 1.0 = brak korekty."
+      },
+      "propertyNames": {
+        "pattern": "^([1-9]|1[0-2])$",
+        "description": "Klucz: numer miesiaca 1-12 jako string."
+      },
+      "examples": [
+        {
+          "1": 0.95, "2": 0.95, "3": 0.98,
+          "6": 1.15, "7": 1.15, "8": 1.15,
+          "12": 0.95
+        }
+      ]
+    }
+  },
+  "definitions": {
+    "PricingItem": {
+      "type": "object",
+      "required": ["min", "max", "unit"],
+      "additionalProperties": false,
+      "properties": {
+        "min": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Dolna granica widełek ceny (PLN). Musi byc < max."
+        },
+        "max": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Gorna granica widelek ceny (PLN). Musi byc >= min."
+        },
+        "unit": {
+          "type": "string",
+          "enum": ["PLN/m²", "PLN/m³", "PLN/szt", "PLN/mb"],
+          "description": "Jednostka miary. Enum — tylko dopuszczalne wartosci."
+        },
+        "notes": {
+          "type": "string",
+          "description": "Opcjonalny komentarz (np. 'Robocizna + material, sciana 25 cm')."
+        }
+      }
+    }
+  }
+}

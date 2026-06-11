@@ -1,0 +1,120 @@
+# UptimeRobot Setup Procedure — {{PROJECT_NAME}}
+
+Monitor: `https://{{PROD_URL}}/api/health` ping co 5 min (free tier).
+
+---
+
+## Krok 1 — Rejestracja konta UptimeRobot
+
+1. Wejdź na `https://uptimerobot.com/` → "Register for FREE"
+2. Podaj email: `{{ADMIN_EMAIL}}`
+3. Potwierdź email — link aktywacyjny
+4. Zaloguj się do dashboardu `https://dashboard.uptimerobot.com/`
+
+**Free tier limits:**
+- 50 monitorów max
+- Interval: **5 minut** (minimum w free)
+- Retention alertów: 2 miesiące historii
+- 1 publiczna status page
+
+---
+
+## Krok 2 — Dodanie monitora HTTP
+
+1. Dashboard → "Add New Monitor"
+2. Wypełnij formularz:
+
+| Pole | Wartość |
+|---|---|
+| Monitor Type | `HTTP(s)` |
+| Friendly Name | `{{PROJECT_NAME}} — Health` |
+| URL | `https://{{PROD_URL}}/api/health` |
+| Monitoring Interval | `5 minutes` |
+| Monitor Timeout | `30 seconds` |
+| HTTP Method | `GET` |
+| Expected HTTP Status Code | `200` |
+
+3. Zaawansowane → "Keyword Monitoring":
+   - Monitor Type → `Keyword`
+   - Keyword: `"status":"ok"`
+   - Alert when: keyword NOT found (wykrywa degraded/error response)
+
+4. Kliknij "Create Monitor"
+
+---
+
+## Krok 3 — Alert contacts
+
+### Email (wymagany)
+1. My Settings → Alert Contacts → "Add Alert Contact"
+2. Type: `E-mail`
+3. Friendly Name: `{{ADMIN_EMAIL}}`
+4. E-mail: `{{ADMIN_EMAIL}}`
+5. Kliknij "Add Alert Contact" → odbierz test email
+
+### Telegram (opcjonalny, rekomendowany)
+1. My Settings → Alert Contacts → "Add Alert Contact"
+2. Type: `Telegram`
+3. Postępuj z instrukcją Bot Setup (BotFather → token)
+4. Chat ID: pobierz przez `https://api.telegram.org/bot<TOKEN>/getUpdates`
+
+### Przypisanie do monitora
+1. Edytuj monitor → "Alert Contacts" tab
+2. Dodaj oba kontakty
+3. "Alert When Down" ✓ + "Alert When Back Up" ✓
+
+---
+
+## Krok 4 — Maintenance windows (deploy timing)
+
+Podczas deployu `/api/health` może chwilowo odpowiadać 503 (container restart).
+Ustaw okno konserwacji na czas deploya:
+
+1. Dashboard → Maintenance Windows → "Add Maintenance Window"
+2. Type: `One-time` (dla planowanego deployu) lub `Recurring`
+3. Recurring example (nightly CD deploy, jeśli CD uruchamia się o 2:00):
+   - Duration: 15 minut
+   - Time: `02:00-02:15 Europe/Warsaw`
+4. Przypisz do monitora `{{PROJECT_NAME}} — Health`
+
+**Alternatywa:** CD workflow może wywołać UptimeRobot API przed/po deploy:
+```bash
+# Pause monitor before deploy
+curl -s "https://api.uptimerobot.com/v2/editMonitor" \
+  -d "api_key={{UPTIMEROBOT_API_KEY}}&id=<MONITOR_ID>&status=0"
+
+# Resume after healthcheck pass
+curl -s "https://api.uptimerobot.com/v2/editMonitor" \
+  -d "api_key={{UPTIMEROBOT_API_KEY}}&id=<MONITOR_ID>&status=1"
+```
+`{{UPTIMEROBOT_API_KEY}}` → My Settings → API Settings → Main API Key.
+
+---
+
+## Krok 5 — Status page (opcjonalne)
+
+Dla transparentności z Janem lub klientami końcowymi:
+1. Dashboard → Status Pages → "Create New Status Page"
+2. Friendly Name: `{{PROJECT_NAME}} Status`
+3. Custom domain (opcjonalne): `status.{{PROD_URL}}`
+4. Dodaj monitor `{{PROJECT_NAME}} — Health`
+5. Ustaw "Show uptime ratio last 30 days" ✓
+
+**Uwaga:** publiczna status page ujawnia uptime historię — rozważ czy to pożądane.
+
+---
+
+## Weryfikacja po konfiguracji
+
+```bash
+# Sprawdź czy healthcheck odpowiada poprawnie
+curl -sf "https://{{PROD_URL}}/api/health" | python3 -m json.tool
+# Oczekiwany output: {"status":"ok","timestamp":"...","uptime":...}
+
+# Sprawdź /api/ready (DB ping)
+curl -sf "https://{{PROD_URL}}/api/ready" | python3 -m json.tool
+# Oczekiwany output: {"status":"ok","checks":{"db":"ok"},"latency_ms":...}
+```
+
+Po 10 minutach od uruchomienia monitora — sprawdź dashboard UptimeRobot:
+status powinien być `Up` (zielony).

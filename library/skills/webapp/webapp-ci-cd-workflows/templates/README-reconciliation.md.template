@@ -1,0 +1,137 @@
+# Reconciliation: webapp-ci-cd-workflows vs webapp-cicd-templates
+
+> **Dla projektu:** {{PROJECT_NAME}}
+> **Wygenerowano z:** `library/skills/webapp/webapp-ci-cd-workflows/` v1.0.0 (, 2026-05-29)
+
+---
+
+## Dwa skille — dwa zakresy
+
+W fabryce agent-factory istnieją dwa skille CI/CD dla webapp:
+
+| | `webapp-cicd-templates` | `webapp-ci-cd-workflows` |
+|---|---|---|
+| Wersja | 1.0 (2026-04-23) | 1.0.0 (2026-05-29) |
+| audit-scope | `minimal` | `production` |
+| Zasada #15 | NIE pokrywa | Pkt 4 + 11 + 12 POKRYTE |
+| Deploy target | Coolify / ssh-compose | ghcr.io + self-hosted runner |
+| Container registry | brak | ghcr.io (private LogicMorrow) |
+| Security scans | `pnpm audit` (basic) | Trivy + CodeQL + SBOM + ZAP |
+| SBOM | brak | `cyclonedx-bom` → artifact 90d |
+| Status | AKTYWNY (dla CLI/internal) | AKTYWNY (dla webapp prod) |
+
+---
+
+## Który skill używasz w tym projekcie?
+
+**Ten plik jest w projekcie {{PROJECT_NAME}} — używa `webapp-ci-cd-workflows`.**
+
+Kryterium decyzji:
+
+```
+Nowy webapp produkcyjny LogicMorrow?
+  TAK → webapp-ci-cd-workflows (ten skill)
+  NIE → webapp-cicd-templates (legacy, Coolify/ssh-compose)
+
+Wymagany audit-ready 18/18 zasada #15?
+  TAK → webapp-ci-cd-workflows
+  NIE (internal tool, CLI) → webapp-cicd-templates
+```
+
+---
+
+## Status webapp-cicd-templates
+
+**DEPRECATED dla webapp produkcyjnych** od 2026-05-29 ( fabryki).
+
+Pozostaje aktywny dla:
+- Projektów CLI / internal tooling fabryki (np. skrypty, agent-factory własne CI)
+- Projektów gdzie Coolify jest deploy target (bez ghcr.io)
+- Projektów historycznych które nie wymagają audit-ready upgrade
+
+**NIE usuwaj webapp-cicd-templates** z `library/skills/webapp/` — legacy projekty oraz Coolify-based workflows go używają.
+
+**Deprecation timeline:** do 2031-05-29 (5 lat). Niski impact — nowe projekty automatycznie dostają webapp-ci-cd-workflows przez zasadę #15.
+
+---
+
+## Migration guide — z webapp-cicd-templates na webapp-ci-cd-workflows
+
+Jeśli projekt aktualnie używa webapp-cicd-templates i potrzebuje upgrade do audit-ready:
+
+### Krok 1 — Backup starych workflows
+
+```bash
+mkdir -p .github/workflows/_legacy
+cp .github/workflows/ci.yml .github/workflows/_legacy/ci.yml.coolify
+cp .github/workflows/deploy.yml .github/workflows/_legacy/deploy.yml.coolify
+```
+
+### Krok 2 — Kopiuj nowe templates
+
+```bash
+cp library/skills/webapp/webapp-ci-cd-workflows/templates/ci.yml.template .github/workflows/ci.yml
+cp library/skills/webapp/webapp-ci-cd-workflows/templates/cd.yml.template .github/workflows/cd.yml
+cp library/skills/webapp/webapp-ci-cd-workflows/templates/security.yml.template .github/workflows/security.yml
+cp library/skills/webapp/webapp-ci-cd-workflows/templates/dependabot.yml.template .github/dependabot.yml
+cp library/skills/webapp/webapp-ci-cd-workflows/templates/codeql-config.yml.template .github/codeql/codeql-config.yml
+```
+
+### Krok 3 — sed-replace zmiennych (patrz SKILL.md sekcja 6)
+
+```bash
+# Wartości spójne z webapp-docker-templates w projekcie
+sed -i \
+  -e "s/{{PROJECT_NAME}}/{{PROJECT_NAME}}/g" \
+  -e "s/{{GHCR_OWNER}}/logicmorrow/g" \
+  ... (pełna lista w SKILL.md sekcja 6 krok 2)
+```
+
+### Krok 4 — Zarejestruj self-hosted runner na VPS prod
+
+Patrz SKILL.md sekcja 6 krok 4.
+
+### Krok 5 — Weryfikacja różnic CI
+
+| Stare (webapp-cicd-templates) | Nowe (webapp-ci-cd-workflows) |
+|---|---|
+| lint + typecheck + test | lint + typecheck + unit-test + e2e-test + docker-build |
+| coverage: konfigurowalny | coverage gate ≥80% enforced |
+| brak e2e | playwright e2e job |
+| brak docker-build | docker-build (no push) w CI |
+
+### Krok 6 — Usuń stary deploy.yml (Coolify/ssh-compose)
+
+```bash
+rm .github/workflows/_legacy/deploy.yml.coolify  # jeśli nie potrzebujesz jako reference
+```
+
+### Krok 7 — Commit
+
+```bash
+git add .github/
+git commit -m "ci: upgrade webapp-cicd-templates → webapp-ci-cd-workflows (audit-ready)"
+git push
+```
+
+---
+
+## Auto-discovery hook (TODO )
+
+W przyszłości `auto-discovery-deps.sh` będzie automatycznie routował:
+
+```bash
+# Planowane zachowanie :
+if [ "$AUDIT_SCOPE" = "production" ]; then
+  echo "preferred_skill=webapp-ci-cd-workflows"
+elif [ "$AUDIT_SCOPE" = "minimal" ]; then
+  echo "preferred_skill=webapp-cicd-templates"
+fi
+```
+
+Do : wybór manualny per projekt.
+
+---
+
+*Reconciliation doc wygenerowany z `library/skills/webapp/webapp-ci-cd-workflows/templates/README-reconciliation.md.template`*
+* agent-factory — Skill v1.0.0, 2026-05-29*

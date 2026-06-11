@@ -1,0 +1,300 @@
+# Security Workflows — {{PROJECT_NAME}}
+# Skill: webapp-ci-cd-workflows v1.0.0 
+# Zasada #15 CLAUDE.md pkt 4 (security.yml), pkt 11 (SBOM cyclonedx-bom), pkt 12 (Trivy + CodeQL)
+#
+# Podmień zmienne: {{PROJECT_NAME}} {{GHCR_OWNER}} {{STAGING_URL}} {{CODEQL_LANGUAGE}}
+#
+# Jobs:
+#   trivy-scan      — daily + push: container scan HIGH/CRITICAL exit-code 1
+#   codeql          — weekly + push: JS/TS static analysis security-extended queries
+#   sbom-generation — weekly: cyclonedx-bom SBOM → upload artifact
+#   zap-baseline    — daily: OWASP ZAP baseline scan vs {{STAGING_URL}}
+#   zap-full        — weekly (Monday 03:00): OWASP ZAP full scan vs {{STAGING_URL}}
+#
+# WAŻNE: ZAP scan NIE uruchamiać vs prod URL — tylko staging.
+# Trivy image scan wymaga: needs: [build-push-for-scan] (obraz musi istnieć w ghcr.io).
+
+name: Security Scans
+
+on:
+  schedule:
+    # Daily 02:00 UTC — Trivy + ZAP baseline
+    - cron: "0 2 * * *"
+    # Weekly Monday 03:00 UTC — CodeQL + SBOM + ZAP full
+    - cron: "0 3 * * 1"
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  IMAGE_NAME: "ghcr.io/{{GHCR_OWNER}}/{{PROJECT_NAME}}"
+
+jobs:
+  # ─────────────────────────────────────────────
+  # Job 1: Trivy Container Scan
+  # Zasada #15 pkt 12 — HIGH/CRITICAL exit-code 1 (fail PR/merge jeśli ma HIGH/CRITICAL)
+  # Na schedule: skanuje :latest (zawsze aktualna prod)
+  # Na push main: skanuje :sha (nowo zbudowany obraz)
+  # ─────────────────────────────────────────────
+  trivy-scan:
+    name: Trivy Container Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    permissions:
+      contents: read
+      packages: read
+      security-events: write  # dla upload SARIF do GH Security tab
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Login to ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set image ref
+        id: image
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "ref=${{ env.IMAGE_NAME }}:${{ github.sha }}" >> $GITHUB_OUTPUT
+          else
+            echo "ref=${{ env.IMAGE_NAME }}:latest" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Pull image for scanning
+        run: docker pull ${{ steps.image.outputs.ref }}
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ steps.image.outputs.ref }}
+          format: sarif
+          output: trivy-results.sarif
+          severity: "HIGH,CRITICAL"
+          exit-code: 1
+          ignore-unfixed: false
+          vuln-type: "os,library"
+
+      - name: Upload Trivy scan results to GitHub Security
+        if: always
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif
+          category: trivy-container
+
+      - name: Upload Trivy report artifact
+        if: always
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-scan-${{ github.run_id }}
+          path: trivy-results.sarif
+          retention-days: 30
+
+  # ─────────────────────────────────────────────
+  # Job 2: CodeQL Static Analysis
+  # Zasada #15 pkt 12 — JS/TS security-extended queries
+  # Uruchamia się: weekly schedule + push main
+  # ─────────────────────────────────────────────
+  codeql:
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    # CodeQL intensive — uruchamiaj tylko weekly + push main, nie daily
+    if: github.event_name == 'push' || github.event.schedule == '0 3 * * 1' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: "{{CODEQL_LANGUAGE}}"
+          config-file: .github/codeql/codeql-config.yml
+          queries: security-extended
+
+      - name: Setup pnpm (CodeQL autobuild needs deps)
+        uses: pnpm/action-setup@v4
+        with:
+          version: "10"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "codeql-javascript"
+          output: codeql-results
+
+  # ─────────────────────────────────────────────
+  # Job 3: SBOM Generation
+  # Zasada #15 pkt 11 — cyclonedx-bom SBOM → artifact
+  # Format: CycloneDX JSON, spec 1.4+
+  # Upload-artifact retention 90 dni (audit evidence)
+  # ─────────────────────────────────────────────
+  sbom-generation:
+    name: SBOM Generation (CycloneDX)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    # SBOM na każdy push main + weekly schedule
+    if: github.event_name == 'push' || github.event.schedule == '0 3 * * 1' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: "10"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate SBOM (CycloneDX JSON)
+        run: |
+          npx --yes @cyclonedx/cyclonedx-npm \
+            --output-format JSON \
+            --output-file sbom.json \
+            --package-lock-only
+          echo "SBOM generated:"
+          cat sbom.json | python3 -m json.tool --no-ensure-ascii | head -20
+
+      - name: Validate SBOM schema
+        run: |
+          COMPONENT_COUNT=$(cat sbom.json | python3 -c "
+          import sys, json
+          data = json.load(sys.stdin)
+          print(len(data.get('components', [])))
+          ")
+          echo "SBOM components: $COMPONENT_COUNT"
+          if [ "$COMPONENT_COUNT" -eq "0" ]; then
+            echo "SBOM has 0 components — likely error in generation"
+            exit 1
+          fi
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-${{ github.sha }}-${{ github.run_id }}
+          path: sbom.json
+          retention-days: 90  # audit evidence — 90 dni retention
+
+      - name: SBOM summary
+        run: |
+          echo "### SBOM Generated" >> $GITHUB_STEP_SUMMARY
+          COMP=$(cat sbom.json | python3 -c "import sys,json; d=json.load(sys.stdin); print(len(d.get('components',[])))")
+          echo "**Format:** CycloneDX JSON" >> $GITHUB_STEP_SUMMARY
+          echo "**Components:** $COMP" >> $GITHUB_STEP_SUMMARY
+          echo "**SHA:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Retention:** 90 days (audit evidence)" >> $GITHUB_STEP_SUMMARY
+
+  # ─────────────────────────────────────────────
+  # Job 4: OWASP ZAP Baseline Scan
+  # Daily 02:00 UTC — szybki baseline DAST scan vs {{STAGING_URL}}
+  # NIE uruchamiać vs prod URL.
+  # Baseline = passive scan + spider (< 5 min)
+  # ─────────────────────────────────────────────
+  zap-baseline:
+    name: ZAP Baseline Scan (DAST)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    permissions:
+      issues: write  # ZAP action może tworzyć GH Issues z wynikami
+
+    # ZAP tylko na schedule i workflow_dispatch (nie na każdy push — za wolne)
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.12.0
+        with:
+          target: "{{STAGING_URL}}"
+          rules_file_name: ".zap/rules.tsv"
+          cmd_options: "-a -j"
+          fail_action: warn
+          allow_issue_writing: true
+          issue_title: "ZAP Baseline Scan — {{PROJECT_NAME}}"
+
+      - name: Upload ZAP baseline report
+        if: always
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-baseline-${{ github.run_id }}
+          path: |
+            report_html.html
+            report_json.json
+          retention-days: 30
+
+  # ─────────────────────────────────────────────
+  # Job 5: OWASP ZAP Full Scan
+  # Weekly Monday 03:00 UTC — pełny active scan vs {{STAGING_URL}}
+  # UWAGA: Full scan może trwać 30-60 min i generuje intensywny traffic.
+  # NIE uruchamiać vs prod URL — tylko staging/dev environment.
+  # ─────────────────────────────────────────────
+  zap-full:
+    name: ZAP Full Scan (Weekly)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    permissions:
+      issues: write
+
+    # Full scan TYLKO weekly schedule i manual dispatch
+    if: github.event.schedule == '0 3 * * 1' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: ZAP Full Scan
+        uses: zaproxy/action-full-scan@v0.10.0
+        with:
+          target: "{{STAGING_URL}}"
+          rules_file_name: ".zap/rules.tsv"
+          cmd_options: "-a"
+          fail_action: warn
+          allow_issue_writing: true
+          issue_title: "ZAP Full Scan Weekly — {{PROJECT_NAME}}"
+
+      - name: Upload ZAP full scan report
+        if: always
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-full-scan-${{ github.run_id }}
+          path: |
+            report_html.html
+            report_json.json
+          retention-days: 90  # full scan — 90 dni dla audytu

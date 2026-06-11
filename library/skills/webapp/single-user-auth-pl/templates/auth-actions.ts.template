@@ -1,0 +1,283 @@
+/**
+ * Server Actions — auth flow — single-user-auth-pl v2.0.0
+ * Stack: iron-session 8 + bcryptjs + zxcvbn (NIE Auth.js v5)
+ *
+ * Placeholders:
+ *   {{APP_NAME}}     — np. "demoapp" (dla audit log context)
+ *   {{USER_TABLE}}   — nazwa modelu Prisma z hasłem, np. "user"
+ *
+ * Wymagane deps:
+ *   iron-session ^8.0.4, bcryptjs ^2.4.3, zxcvbn ^4.4.2
+ *   @otplib/preset-default (TOTP), qrcode (QR generation)
+ *   pnpm add iron-session bcryptjs zxcvbn @otplib/preset-default qrcode
+ *   pnpm add -D @types/bcryptjs @types/zxcvbn @types/qrcode
+ */
+
+"use server";
+
+import { redirect } from "next/navigation";
+import bcrypt from "bcryptjs";
+import { authenticator } from "@otplib/preset-default";
+import QRCode from "qrcode";
+
+import { getSession, requireSession, env } from "@/lib/session";
+import { validatePasswordStrength } from "@/lib/password-validators";
+import { writeAuditLog } from "@/lib/audit-log";
+import { db } from "@/lib/db";
+import { checkLoginRateLimit, recordLoginAttempt } from "@/lib/rate-limit";
+
+// ─── LOGIN ────────────────────────────────────────────────────────────────
+
+export interface LoginResult {
+  success: boolean;
+  error?: string;
+  requireTotp?: boolean;
+}
+
+export async function loginAction(formData: FormData): Promise<LoginResult> {
+  const email = formData.get("email")?.toString?.toLowerCase.trim ?? "";
+  const password = formData.get("password")?.toString ?? "";
+  const ipAddress = formData.get("_ip")?.toString ?? "unknown"; // inject w middleware
+
+  // Rate limit check — przed jakimkolwiek przetwarzaniem
+  const rateLimitKey = `login:${ipAddress}`;
+  const isRateLimited = await checkLoginRateLimit(rateLimitKey);
+  if (isRateLimited) {
+    await writeAuditLog({
+      action: "login.rate_limited",
+      ipAddress,
+      metadata: { email_hash: hashPartial(email) },
+    });
+    return { success: false, error: "Zbyt wiele prób logowania. Poczekaj 15 minut." };
+  }
+
+  // Zawsze szukaj użytkownika i zawsze porównuj hash
+  // (zapobiega user enumeration przez różnicę czasową)
+  const user = await db.{{USER_TABLE}}.findUnique({ where: { email } });
+  const DUMMY_HASH = "$2a$12$dummyhashtopreventtimingattackson.invaliduser.xxxxxxxxxxx";
+  const passwordHash = user?.passwordHash ?? DUMMY_HASH;
+
+  const isValid = await bcrypt.compare(password, passwordHash);
+
+  if (!isValid || !user) {
+    await recordLoginAttempt(rateLimitKey, false);
+    await writeAuditLog({
+      action: "login.fail",
+      ipAddress,
+      metadata: { email_hash: hashPartial(email) },
+    });
+    // Zawsze ta sama wiadomość — nie rozróżniaj "złe hasło" vs "brak użytkownika"
+    return { success: false, error: "Nieprawidłowy email lub hasło." };
+  }
+
+  await recordLoginAttempt(rateLimitKey, true);
+
+  // TOTP feature flag — jeśli włączony i user ma TOTP skonfigurowany
+  if (env.TOTP_REQUIRED && user.totpSecret) {
+    // Zapisz tymczasowo userId do sesji (bez totpVerified)
+    const session = await getSession;
+    session.userId = user.id;
+    session.totpVerified = false;
+    session.lastActivity = Date.now;
+    session.createdAt = Date.now;
+    await session.save;
+
+    await writeAuditLog({
+      action: "login.totp_required",
+      userId: user.id,
+      ipAddress,
+      metadata: {},
+    });
+
+    return { success: true, requireTotp: true };
+  }
+
+  // Zaloguj — twórz pełną sesję
+  const session = await getSession;
+  session.userId = user.id;
+  session.totpVerified = !env.TOTP_REQUIRED; // true gdy TOTP wyłączony
+  session.lastActivity = Date.now;
+  session.createdAt = Date.now;
+  await session.save;
+
+  await writeAuditLog({
+    action: "login.success",
+    userId: user.id,
+    ipAddress,
+    metadata: {},
+  });
+
+  redirect("/dashboard");
+}
+
+// ─── LOGOUT ──────────────────────────────────────────────────────────────
+
+export async function logoutAction: Promise<void> {
+  const session = await getSession;
+  const userId = session.userId;
+
+  await session.destroy;
+
+  if (userId) {
+    await writeAuditLog({
+      action: "logout",
+      userId,
+      ipAddress: "server", // POST request — IP dostępne przez header injection
+      metadata: {},
+    });
+  }
+
+  redirect("/login");
+}
+
+// ─── VERIFY TOTP ─────────────────────────────────────────────────────────
+
+export interface VerifyTotpResult {
+  success: boolean;
+  error?: string;
+}
+
+export async function verifyTotpAction(formData: FormData): Promise<VerifyTotpResult> {
+  const code = formData.get("code")?.toString ?? "";
+  const ipAddress = formData.get("_ip")?.toString ?? "unknown";
+
+  const session = await getSession;
+  if (!session.userId) {
+    return { success: false, error: "Sesja wygasła. Zaloguj się ponownie." };
+  }
+
+  const user = await db.{{USER_TABLE}}.findUnique({
+    where: { id: session.userId },
+    select: { id: true, totpSecret: true },
+  });
+
+  if (!user?.totpSecret) {
+    return { success: false, error: "TOTP nie jest skonfigurowane." };
+  }
+
+  const isValid = authenticator.check(code, user.totpSecret);
+
+  if (!isValid) {
+    await writeAuditLog({
+      action: "login.totp_fail",
+      userId: user.id,
+      ipAddress,
+      metadata: {},
+    });
+    return { success: false, error: "Nieprawidłowy kod TOTP. Sprawdź aplikację authenticator." };
+  }
+
+  // Zaktualizuj sesję — TOTP zweryfikowane
+  session.totpVerified = true;
+  session.lastActivity = Date.now;
+  await session.save;
+
+  await writeAuditLog({
+    action: "login.success",
+    userId: user.id,
+    ipAddress,
+    metadata: { totp_verified: true },
+  });
+
+  redirect("/dashboard");
+}
+
+// ─── SETUP TOTP (pierwsze uruchomienie) ──────────────────────────────────
+
+export interface SetupTotpResult {
+  success: boolean;
+  qrCodeDataUrl?: string;
+  backupCodes?: string[];
+  error?: string;
+}
+
+export async function setupTotpAction: Promise<SetupTotpResult> {
+  const { userId } = await requireSession;
+
+  const user = await db.{{USER_TABLE}}.findUnique({
+    where: { id: userId },
+    select: { id: true, email: true, totpSecret: true },
+  });
+
+  if (!user) return { success: false, error: "Użytkownik nie istnieje." };
+
+  if (user.totpSecret) {
+    return { success: false, error: "TOTP jest już skonfigurowane. Najpierw usuń stary klucz." };
+  }
+
+  // Generuj nowy secret TOTP
+  const secret = authenticator.generateSecret;
+  const otpAuthUrl = authenticator.keyuri(user.email, "{{APP_NAME}}", secret);
+  const qrCodeDataUrl = await QRCode.toDataURL(otpAuthUrl);
+
+  // Generuj backup codes (10 jednorazowych kodów 8-cyfrowych)
+  const backupCodes = Array.from({ length: 10 },  =>
+    Math.floor(10000000 + Math.random * 90000000).toString
+  );
+  const backupCodesHashed = await Promise.all(
+    backupCodes.map((code) => bcrypt.hash(code, 10))
+  );
+
+  // Zapisz tymczasowo — aktywuj po weryfikacji pierwszego kodu
+  await db.{{USER_TABLE}}.update({
+    where: { id: userId },
+    data: {
+      totpSecretPending: secret,
+      totpBackupCodes: backupCodesHashed,
+    },
+  });
+
+  await writeAuditLog({
+    action: "settings.totp_setup_initiated",
+    userId,
+    ipAddress: "server",
+    metadata: {},
+  });
+
+  return { success: true, qrCodeDataUrl, backupCodes };
+}
+
+export async function confirmTotpSetupAction(formData: FormData): Promise<{ success: boolean; error?: string }> {
+  const code = formData.get("code")?.toString ?? "";
+  const { userId } = await requireSession;
+
+  const user = await db.{{USER_TABLE}}.findUnique({
+    where: { id: userId },
+    select: { id: true, totpSecretPending: true },
+  });
+
+  if (!user?.totpSecretPending) {
+    return { success: false, error: "Brak oczekującego klucza TOTP. Zacznij setup od nowa." };
+  }
+
+  const isValid = authenticator.check(code, user.totpSecretPending);
+  if (!isValid) {
+    return { success: false, error: "Nieprawidłowy kod. Sprawdź aplikację authenticator i spróbuj ponownie." };
+  }
+
+  // Aktywuj TOTP — przenieś z pending do aktywnego
+  await db.{{USER_TABLE}}.update({
+    where: { id: userId },
+    data: {
+      totpSecret: user.totpSecretPending,
+      totpSecretPending: null,
+    },
+  });
+
+  await writeAuditLog({
+    action: "settings.totp_enabled",
+    userId,
+    ipAddress: "server",
+    metadata: {},
+  });
+
+  return { success: true };
+}
+
+// ─── Helper (wewnętrzny) ──────────────────────────────────────────────────
+
+/** Skrót pierwszych 4 znaków SHA-256 dla email — do audit log (nie PII) */
+function hashPartial(value: string): string {
+  const { createHash } = require("crypto");
+  return createHash("sha256").update(value).digest("hex").slice(0, 8);
+}

@@ -1,0 +1,156 @@
+# yaml-language-server: $schema=./rules-schema.json
+# calculator-rules-engine v1.0.0 — sample-rules-baseline.yaml
+# Cennik baseline PL widełki 2024-2026 (źródło: construction-domain-rules §7)
+# DISCLAIMER: Widełki rynkowe PL 2024-2026 dla orientacji. Faktyczne ceny zależą
+# od regionu (różnice 15-30%), materiałów, technologii i czasu realizacji.
+# Weryfikuj aktualne stawki przed wyceną — skonsultuj się z lokalnym GW.
+# Aktualizacja: ~kwartalnie → zmiana = MINOR bump (nowe widełki) lub PATCH (korekta ±5%)
+
+meta:
+  version: "1.0.0"
+  baseline_date: "2024-01"
+  disclaimer: >
+    Widełki rynkowe PL 2024-2026. Faktyczne ceny zależą od regionu, materiałów,
+    technologii i czasu realizacji. Weryfikuj u lokalnego GW lub kosztorysanta.
+    Nie wykorzystuj jako oferty handlowej.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# WYMIAR 1: Cennik jednostkowy (PLN per jednostka)
+# Klucze: ASCII slug, bez polskich znaków
+# ─────────────────────────────────────────────────────────────────────────────
+pricing:
+
+  # FUNDAMENTY
+  fundament_plytowy:          # Płyta fundamentowa z izolacją (XPS + folia)
+    min: 350
+    max: 500
+    unit: "PLN/m²"
+    notes: "Monolityczna płyta żelbetowa, XPS + folia, kompletnie"
+
+  fundament_lawy:             # Ławy fundamentowe żelbetowe
+    min: 180
+    max: 280
+    unit: "PLN/mb"
+    notes: "Szerokość standardowa 50-80 cm, głębokość 80-120 cm"
+
+  # MURY
+  mur_ytong_24cm:             # Beton komórkowy (ytong/H+H/Solbet) 24 cm
+    min: 180
+    max: 280
+    unit: "PLN/m²"
+    notes: "Robocizna + materiał, ściana 24 cm"
+
+  mur_ceramika_poryzowana:    # Ceramika poryzowana (Porotherm/MAX) 25-30 cm
+    min: 200
+    max: 320
+    unit: "PLN/m²"
+    notes: "Robocizna + materiał, 1-warstwowa 25-30 cm"
+
+  mur_silikat:                # Silikat (SILKA/H+H) wymagający ocieplenia
+    min: 160
+    max: 250
+    unit: "PLN/m²"
+    notes: "Robocizna + materiał, bez ocieplenia"
+
+  # STROPY
+  strop_teriva:               # Strop Teriva (z zabetonowaniem i wieńcami)
+    min: 200
+    max: 320
+    unit: "PLN/m²"
+    notes: "Kompleksowo z wieńcami kondygnacyjnymi"
+
+  strop_zelbet_monolityczny:  # Strop żelbetowy monolityczny (wylewany)
+    min: 280
+    max: 420
+    unit: "PLN/m²"
+    notes: "Z deskowaniem, zbrojeniem i zabetonowaniem"
+
+  # WIEŹBA I DACH
+  wiezba_platwiowo_kleszczowa: # Więźba płatwiowo-kleszczowa drewniana C24
+    min: 250
+    max: 400
+    unit: "PLN/m²"
+    notes: "Rzut dachu, drewno C24 impregnowane, robocizna + materiał"
+
+  wiezba_krokwiowa:           # Więźba krokwiowa (domy do 10m szerokości)
+    min: 200
+    max: 320
+    unit: "PLN/m²"
+    notes: "Rzut dachu, drewno C24"
+
+  pokrycie_blachodachowka:    # Blachodachówka
+    min: 80
+    max: 140
+    unit: "PLN/m²"
+    notes: "Połać dachu, robocizna + materiał + folia + łaty"
+
+  pokrycie_dachowka_ceramiczna: # Dachówka ceramiczna
+    min: 120
+    max: 220
+    unit: "PLN/m²"
+    notes: "Połać dachu, robocizna + materiał + folia + łaty + kontrłaty"
+
+  # KOMINY
+  komin_ceramika_schiedel:    # Komin systemowy ceramiczny (SCHIEDEL/JEREMIAS)
+    min: 4000
+    max: 7000
+    unit: "PLN/szt"
+    notes: "Komin systemowy do 5m, z bloczkiem obudowy, bez wykończenia kominiarki"
+
+  komin_mb:                   # Komin systemowy per mb (dla niestandards wysokości)
+    min: 600
+    max: 1200
+    unit: "PLN/mb"
+    notes: "Per metr bieżący, zależy od średnicy i systemu"
+
+  # WIEŃCE
+  wieniec_zelbet:             # Wieniec żelbetowy (kondygnacyjny/attykowy)
+    min: 80
+    max: 150
+    unit: "PLN/mb"
+    notes: "Przekrój 25×25 lub 30×25 cm, stal A-IIIN"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# WYMIAR 2: Współczynniki regionalne (16 województw)
+# Zakres: 0.85-1.20. Baseline: 1.00 (mediana PL)
+# Źródło: construction-domain-rules §8 + regional-seo-poland widełki regionalne
+# ─────────────────────────────────────────────────────────────────────────────
+regional:
+  # Wyższe ceny (rynki miejskie, duże aglomeracje)
+  mazowieckie:         1.20  # Warszawa + aglomeracja — najdroższy rynek PL
+  dolnoslaskie:        1.18  # Wrocław + Legnica + Jelenia Góra
+  pomorskie:           1.15  # Trójmiasto (Gdańsk/Gdynia/Sopot)
+  malopolskie:         1.12  # Kraków + region turystyczny
+  wielkopolskie:       1.10  # Poznań + aglomeracja
+  slaskie:             1.08  # Katowice/aglomeracja śląska
+  lodzkie:             1.05  # Łódź + region
+  kujawsko_pomorskie:  1.03  # Bydgoszcz + Toruń
+  zachodniopomorskie:  1.02  # Szczecin + Koszalin
+  # Mediana PL (baseline 1.00)
+  opolskie:            1.00
+  swietokrzyskie:      0.98  # Kielce + region
+  warminsko_mazurskie: 0.97  # Olsztyn + Mazury
+  podlaskie:           0.95  # Białystok + wschodnie Podlasie
+  mazowieckie:           0.95  # Warszawa + region mazowiecki
+  # Niższe ceny (wschodnia Polska, mniej nasycone rynki)
+  małopolskie:        0.92  # Kraków + region małopolski
+  lubuskie:            0.90  # Zielona Góra + Gorzów Wlkp (najniższy)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# WYMIAR 3: Współczynniki sezonowe (12 miesięcy)
+# Zakres: 0.95-1.15. Sezon budowlany PL: marzec-listopad (peak czerwiec-sierpień)
+# Źródło: content-strategy-construction/seasonal-calendar-pl.yaml
+# ─────────────────────────────────────────────────────────────────────────────
+seasonal:
+  "1":  0.95  # styczeń  — off-season, mróz, mało zleceń, niskie ceny
+  "2":  0.95  # luty     — off-season, koniec zimy, ograniczona aktywność
+  "3":  0.98  # marzec   — start wiosenny, ceny rosną, koniec rabatów zimowych
+  "4":  1.02  # kwiecień — wiosna, start sezon, pierwsze zlecenia
+  "5":  1.08  # maj      — dobry sezon, wzrost popytu, wykonawcy zajęci
+  "6":  1.15  # czerwiec — peak sezon, maksymalny popyt, pełne terminarze GW
+  "7":  1.15  # lipiec   — peak sezon, wysokie ceny robocizny
+  "8":  1.15  # sierpień — peak sezon, koniec wakacji → rush przed jesienią
+  "9":  1.10  # wrzesień — dobry sezon, lekki spadek po peak
+  "10": 1.05  # październik — jesień, przygotowanie do zimy, umiarkowane ceny
+  "11": 1.00  # listopad — koniec sezonu, chłodniej, ceny normalizują się
+  "12": 0.95  # grudzień — off-season, Święta, minimum aktywności, najniższe ceny

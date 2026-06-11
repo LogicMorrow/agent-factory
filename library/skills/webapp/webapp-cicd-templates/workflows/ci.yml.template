@@ -1,0 +1,176 @@
+# CI Workflow — webapp-cicd-templates v1.0
+# Zmienne do podmiany przed uzyciem (sed lub envsubst):
+#   {{PROJECT_NAME}}   — nazwa projektu (np. "my-webapp")
+#   {{COVERAGE_THRESHOLD}} — prog pokrycia (z variables.yaml, default: 70, CRM retrofit: 0)
+#
+# Node matrix: [20, 22] — Node 18 EOL kwiecien 2025, nie dodawaj.
+# Cache: pnpm store + .next/cache osobno (klucz per branch + node-version).
+# Audit: pnpm audit --prod --audit-level=high (blokuje na critical/high dep vulns).
+
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint --max-warnings 0
+
+  typecheck:
+    name: Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+  test:
+    name: Test (Node ${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [20, 22]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: pnpm
+
+      # pnpm store cache — klucz per node-version aby unikac konfliktu binarnych addons
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/pnpm/store
+          key: pnpm-store-node${{ matrix.node-version }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-store-node${{ matrix.node-version }}-
+
+      # Next.js build cache — osobny krok, klucz per branch
+      - name: Cache Next.js build
+        uses: actions/cache@v4
+        with:
+          path: .next/cache
+          key: nextjs-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'next.config.*') }}-${{ github.ref_name }}
+          restore-keys: |
+            nextjs-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'next.config.*') }}-
+            nextjs-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run tests with coverage
+        run: pnpm test --coverage
+        env:
+          # COVERAGE_THRESHOLD=0 pomija gate, >0 blokuje przy niedoborze pokrycia
+          COVERAGE_THRESHOLD: {{COVERAGE_THRESHOLD}}
+
+      # Opcjonalny krok: weryfikacja progu pokrycia
+      # Pomijany gdy COVERAGE_THRESHOLD=0
+      - name: Check coverage threshold
+        if: ${{ env.COVERAGE_THRESHOLD != '0' }}
+        run: |
+          echo "Coverage threshold: $COVERAGE_THRESHOLD%"
+          # Vitest generuje coverage/coverage-summary.json
+          # Jesli uzywasz Jest: coverage/coverage-summary.json rowniez
+          node -e "
+            const summary = require('./coverage/coverage-summary.json');
+            const threshold = parseInt(process.env.COVERAGE_THRESHOLD);
+            const lines = summary.total.lines.pct;
+            console.log('Line coverage:', lines + '%');
+            if (lines < threshold) {
+              console.error('Coverage ' + lines + '% below threshold ' + threshold + '%');
+              process.exit(1);
+            }
+          "
+        env:
+          COVERAGE_THRESHOLD: {{COVERAGE_THRESHOLD}}
+
+  audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Audit production dependencies
+        # Blokuje na high i critical CVE w prod deps
+        # Dev deps pomijane (--prod) — nie trafiaja do produkcji
+        # Wiecej: webapp-security-hardening/SKILL.md
+        run: pnpm audit --prod --audit-level=high
+
+  # Opcjonalny job Python — uruchamiany tylko jesli python/ istnieje w repo
+  python:
+    name: Python Tests
+    runs-on: ubuntu-latest
+    # Warunek: katalog python/ musi istniec
+    if: ${{ hashFiles('python/**') != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install Python dependencies
+        run: pip install -r python/requirements.txt
+
+      - name: Run pytest
+        run: pytest python/ -v

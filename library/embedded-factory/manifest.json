@@ -1,0 +1,346 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "schema_version": 1,
+  "embedded_factory_version": "1.1.0",
+  "compatible_factory_versions": [
+    "2.15.0+"
+  ],
+  "build_strategy": "build-script copy with sed-replace (ADR 009)",
+  "build_script": "library/embedded-factory/build.sh",
+  "generated_at": "2026-06-05T15:45:21Z",
+  "generator_factory_version": "2.21.0",
+  "agents": [
+    {
+      "name": "agent-architect",
+      "model": "opus",
+      "lite": false,
+      "source": ".claude/agents/agent-architect.md",
+      "embedded_path": "agents/agent-architect.md",
+      "source_hash": "9f305de6d562f5849b2122173fc30c27",
+      "description": "Projektuje nowych subagentów. W embedded: projekt może SAM tworzyć agentów bez kontaktu z fabryką."
+    },
+    {
+      "name": "requirements-interviewer",
+      "model": "opus",
+      "lite": false,
+      "source": ".claude/agents/requirements-interviewer.md",
+      "embedded_path": "agents/requirements-interviewer.md",
+      "source_hash": "84e8a79cc504c37710655d70e582d364",
+      "description": "Wywiad biznesowy przed projektowaniem agenta/skilla. Dependency dla agent-architect + skill-builder."
+    },
+    {
+      "name": "skill-builder",
+      "model": "opus",
+      "lite": false,
+      "source": ".claude/agents/skill-builder.md",
+      "embedded_path": "agents/skill-builder.md",
+      "source_hash": "39be06e5b4bd5bcbb8518282f2642468",
+      "description": "Buduje nowe skille. W embedded: projekt może SAM tworzyć skille bez kontaktu z fabryką."
+    },
+    {
+      "name": "self-pilot",
+      "model": "sonnet",
+      "lite": true,
+      "source": ".claude/agents/self-pilot.md",
+      "embedded_path": "agents/self-pilot-lite.md",
+      "lite_spec": "LITE-SPECS/self-pilot-lite-spec.md",
+      "source_hash": "4514f35104b72e168e2930335a006d66",
+      "description": "LITE wariant — tylko --weekly mode, skip pilot-orchestrator dispatch. Cold start adaptive."
+    },
+    {
+      "name": "version-bumper",
+      "model": "sonnet",
+      "lite": false,
+      "source": ".claude/agents/version-bumper.md",
+      "embedded_path": "agents/version-bumper.md",
+      "source_hash": "fa1772a1519958b5e1b53943d2cefa1f",
+      "description": "Generuje proposals v1.0.X dla agentów w projekcie. Confidence score z lokalnych lessons + errors-*.md."
+    },
+    {
+      "name": "mistake-recorder",
+      "model": "haiku",
+      "lite": false,
+      "source": "library/agents/universal/mistake-recorder.md",
+      "embedded_path": "agents/mistake-recorder.md",
+      "source_hash": "0b7e8ee68bdd0d6e712cc25181890f4b",
+      "description": "JSON in/out. Producent zapisów do .claude/memory/errors-{agent}.md. Severity HIGH → promotion do lokalnego lessons.jsonl."
+    },
+    {
+      "name": "pattern-detector",
+      "model": "sonnet",
+      "lite": true,
+      "source": ".claude/agents/pattern-detector.md",
+      "embedded_path": "agents/pattern-detector-lite.md",
+      "lite_spec": "LITE-SPECS/pattern-detector-lite-spec.md",
+      "cold_start_threshold": 10,
+      "source_hash": "70f686469ba1aa9403ccc491d062d73a",
+      "description": "LITE wariant — cold start <10 lessons (vs <50 w fabryce). Sonnet zamiast opus. Cross-agent pattern detection lokalnie."
+    },
+    {
+      "name": "solution-reflector",
+      "model": "sonnet",
+      "lite": false,
+      "source": "library/agents/universal/solution-reflector.md",
+      "embedded_path": "agents/solution-reflector.md",
+      "source_hash": "eeecc7c8e282fbc7fe7ebb5286963d61",
+      "description": "Stop-hook driven — rekonstruuje rozwiązany problem (problem→ślepe uliczki→rozwiązanie), ocenia reusable vs szum + scope, zapisuje md+index. Druga oś learning-loop (solution-memory)."
+    }
+  ],
+  "skills": [
+    {
+      "name": "conversation-learning",
+      "source": "library/skills/universal/conversation-learning/SKILL.md",
+      "embedded_path": "skills/conversation-learning/SKILL.md",
+      "version": "1.1.0",
+      "source_hash": "67e6e6ce74cacbccdc362930154afbdb"
+    },
+    {
+      "name": "cross-agent-learning",
+      "source": "library/skills/universal/cross-agent-learning/SKILL.md",
+      "embedded_path": "skills/cross-agent-learning/SKILL.md",
+      "version": "1.0.0",
+      "source_hash": "2ba5907c638c2290d8b9d5918552075a"
+    },
+    {
+      "name": "error-memory-framework",
+      "source": "library/skills/universal/error-memory-framework/SKILL.md",
+      "embedded_path": "skills/error-memory-framework/SKILL.md",
+      "version": "1.0.0",
+      "source_hash": "c0ab8a9ac6596e23bf4ff332a646c901"
+    },
+    {
+      "name": "model-routing",
+      "source": "library/skills/universal/model-routing.md",
+      "embedded_path": "skills/model-routing.md",
+      "version": "1.0.0",
+      "source_hash": "181ef18eafab1fe62630a0d15d2a1087"
+    },
+    {
+      "name": "solution-memory",
+      "source": "library/skills/universal/solution-memory/SKILL.md",
+      "embedded_path": "skills/solution-memory/SKILL.md",
+      "source_hash": "622230ad0b2b4b5d2eaa287ed28ef590"
+    }
+  ],
+  "hooks": [
+    {
+      "name": "session-start-embedded.sh",
+      "source": "library/embedded-factory/hooks/session-start-embedded.sh",
+      "embedded_path": "hooks/session-start-embedded.sh",
+      "event": "SessionStart",
+      "purpose": "Czyta lokalny .claude/knowledge-base/{lessons.jsonl,reflections,errors,activity-log} przy starcie sesji. Inject summary do kontekstu main Claude (budget <3k tokens).",
+      "source_hash": "0e31307dce5804a423e3d6f94e5b2c6d"
+    },
+    {
+      "name": "userPromptSubmit-conversation-learning.sh",
+      "source": "library/hooks/userPromptSubmit-conversation-learning.sh",
+      "embedded_path": "hooks/userPromptSubmit-conversation-learning.sh",
+      "event": "UserPromptSubmit",
+      "purpose": "Detect 5 feedback patterns w prompt → append candidate do .claude/knowledge-base/candidate-lessons.jsonl. HITL gate przez /review-candidate-lessons.",
+      "source_hash": "46d537e5de51240375d51824a9cd2ee6"
+    },
+    {
+      "name": "on-error-record.sh",
+      "source": "library/hooks/on-error-record.sh",
+      "embedded_path": "hooks/on-error-record.sh",
+      "event": "UserPromptSubmit",
+      "purpose": "Detect error keywords w prompt → stderr soft-reminder dla main Claude żeby rozważył mistake-recorder.",
+      "source_hash": "887d472e1607e0855b0bb84058f41cec"
+    },
+    {
+      "name": "stop-solution-record.sh",
+      "source": "library/embedded-factory/hooks/stop-solution-record.sh",
+      "embedded_path": "hooks/stop-solution-record.sh",
+      "event": "Stop",
+      "purpose": "Po sesji z >=1 commit/>=3 pliki: pre-filtr (idempotencja MD5, loop-guard) → decision:block dispatch solution-reflector. Warstwa autonomiczna bez bramki (solution-memory).",
+      "source_hash": "345b1741924927d930a025fc67449557"
+    }
+  ],
+  "commands": [
+    {
+      "name": "upgrade-factory",
+      "source": "library/embedded-factory/commands/upgrade-factory.md",
+      "embedded_path": "commands/upgrade-factory.md",
+      "purpose": "Manual pull aktualizacji embedded-factory z agent-factory repo. Dry-run + backup + interactive confirm.",
+      "source_hash": "4ec1516dfa18429c2e5a15d1a4b1bf83"
+    },
+    {
+      "name": "promote-lessons",
+      "source": "library/embedded-factory/commands/promote-lessons.md",
+      "embedded_path": "commands/promote-lessons.md",
+      "purpose": "Push branch learning/<date> na repo paczki z lessons confidence ≥3. Fabryka cron pull-merge.",
+      "source_hash": "7d2f16b6e66bfb5a96425b910f36d9bb"
+    },
+    {
+      "name": "review-candidate-lessons",
+      "source": ".claude/commands/review-candidate-lessons.md",
+      "embedded_path": "commands/review-candidate-lessons.md",
+      "purpose": "Batch HITL review pending candidate lessons. Per-candidate accept/reject/edit/skip.",
+      "source_hash": "790469133ad6af274d8d9db77f1c27a1"
+    }
+  ],
+  "scaffold": {
+    "files": [
+      {
+        "path": ".claude/knowledge-base/lessons.jsonl",
+        "init": "empty",
+        "purpose": "Lokalny lessons (per projekt). Promotion do fabryki przez /promote-lessons."
+      },
+      {
+        "path": ".claude/knowledge-base/activity-log.jsonl",
+        "init": "empty",
+        "purpose": "Lokalny activity-log (per projekt)."
+      },
+      {
+        "path": ".claude/knowledge-base/candidate-lessons.jsonl",
+        "init": "empty",
+        "purpose": "Path 1 hook output. HITL gate przez /review-candidate-lessons."
+      },
+      {
+        "path": ".claude/knowledge-base/solutions-index.jsonl",
+        "init": "empty",
+        "purpose": "Lekki indeks solution-memory (per projekt). Recall przy SessionStart, intake przez /weekly-factory-intake."
+      }
+    ],
+    "directories": [
+      {
+        "path": ".claude/knowledge-base/reflections/",
+        "purpose": "Lokalne reflections agentów. Auto-create gdy pierwszy reflection."
+      },
+      {
+        "path": ".claude/knowledge-base/errors/",
+        "purpose": "Per-agent errors-{name}.md (error-memory-framework)."
+      },
+      {
+        "path": ".claude/knowledge-base/solutions/",
+        "purpose": "md per-solution (solution-reflector zapisuje rozwiązania). Auto-create przy pierwszym zapisie."
+      }
+    ],
+    "gitignore_recommendations": [
+      ".claude/knowledge-base/candidate-lessons.jsonl",
+      ".claude/knowledge-base/.session-candidate-count",
+      ".claude/knowledge-base/.pattern-cooldown.json",
+      ".claude/hooks-perf-warn.jsonl",
+      ".claude/hooks-throttle.jsonl",
+      ".claude/knowledge-base/.session-head-baseline",
+      ".claude/knowledge-base/.solution-pending.json",
+      ".claude/knowledge-base/.solution-last-md5"
+    ]
+  },
+  "sed_transformations": [
+    {
+      "pattern": "knowledge-base/lessons.jsonl",
+      "replacement": ".claude/knowledge-base/lessons.jsonl",
+      "applies_to": [
+        "agents",
+        "skills"
+      ]
+    },
+    {
+      "pattern": "knowledge-base/reflections/",
+      "replacement": ".claude/knowledge-base/reflections/",
+      "applies_to": [
+        "agents",
+        "skills"
+      ]
+    },
+    {
+      "pattern": "knowledge-base/activity-log.jsonl",
+      "replacement": ".claude/knowledge-base/activity-log.jsonl",
+      "applies_to": [
+        "agents",
+        "skills"
+      ]
+    },
+    {
+      "pattern": "knowledge-base/interviews/",
+      "replacement": ".claude/knowledge-base/interviews/",
+      "applies_to": [
+        "agents",
+        "skills"
+      ]
+    },
+    {
+      "pattern": "knowledge-base/projects/",
+      "replacement": ".claude/knowledge-base/projects/",
+      "applies_to": [
+        "agents",
+        "skills"
+      ]
+    },
+    {
+      "pattern": "knowledge-base/patterns/",
+      "replacement": ".claude/knowledge-base/patterns/",
+      "applies_to": [
+        "agents",
+        "skills"
+      ]
+    },
+    {
+      "pattern": "knowledge-base/improvement-proposals/",
+      "replacement": ".claude/knowledge-base/improvement-proposals/",
+      "applies_to": [
+        "agents",
+        "skills"
+      ]
+    },
+    {
+      "pattern": "knowledge-base/docs/",
+      "replacement": ".claude/knowledge-base/docs/",
+      "applies_to": [
+        "agents",
+        "skills"
+      ]
+    },
+    {
+      "pattern": "knowledge-base/errors/",
+      "replacement": ".claude/knowledge-base/errors/",
+      "applies_to": [
+        "agents",
+        "skills"
+      ]
+    },
+    {
+      "pattern": "knowledge-base/candidate-lessons",
+      "replacement": ".claude/knowledge-base/candidate-lessons",
+      "applies_to": [
+        "agents",
+        "skills"
+      ]
+    },
+    {
+      "pattern": "knowledge-base/agent-registry.json",
+      "replacement": ".claude/knowledge-base/agent-registry.json",
+      "applies_to": [
+        "agents",
+        "skills"
+      ]
+    },
+    {
+      "pattern": "~/agent-factory/",
+      "replacement": "$CLAUDE_PROJECT_DIR/",
+      "applies_to": [
+        "agents",
+        "skills",
+        "hooks",
+        "commands"
+      ]
+    },
+    {
+      "pattern": "~/agent-factory/",
+      "replacement": "$CLAUDE_PROJECT_DIR/",
+      "applies_to": [
+        "agents",
+        "skills",
+        "hooks",
+        "commands"
+      ]
+    }
+  ],
+  "build_metadata": {
+    "last_built": "2026-06-05T15:45:21Z",
+    "build_count": 14,
+    "checksum_method": "MD5",
+    "parity_check_required": true
+  }
+}

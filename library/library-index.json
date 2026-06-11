@@ -1,0 +1,1915 @@
+{
+  "note": "Clean public catalog — auto-generated from the library frontmatter. Internal development history and client context are intentionally omitted.",
+  "counts": {
+    "agents": 37,
+    "skills": 43
+  },
+  "agents": [
+    {
+      "name": "prompt-engineer",
+      "category": "ai-agents",
+      "path": "library/agents/ai-agents/prompt-engineer.md",
+      "description": "Projektuje i reviewuje prompty agentów AI — struktura (rola/kontekst/zasady/narzędzia/format), cachability, odporność na prompt injection, spójność języka.",
+      "version": "1.0",
+      "model": "opus",
+      "token_cost": "medium",
+      "requires": [
+        "ai-agents-standards"
+      ],
+      "compatible_with": [
+        "ai-agents"
+      ],
+      "tags": [
+        "ai-agents",
+        "prompt-engineering",
+        "anthropic-sdk",
+        "quality"
+      ]
+    },
+    {
+      "name": "analytics-monitor",
+      "category": "universal",
+      "path": "library/agents/universal/analytics-monitor.md",
+      "description": "Executive analytics monitor sonnet — weekly raport GA4+GSC+Plausible z anomaly detection (z-score ≥3 sigma per-page rolling 8-tyg) + top/down landing pages WoW + feed_to_strategist kontrakt C (richer objects priority/...",
+      "version": "1.0.0",
+      "model": "sonnet",
+      "token_cost": "medium",
+      "requires": [
+        "analytics-conversion-tracking",
+        "cross-agent-learning",
+        "error-memory-framework",
+        "model-routing"
+      ],
+      "compatible_with": [
+        "universal"
+      ],
+      "tags": [
+        "analytics",
+        "monitoring",
+        "ga4",
+        "gsc",
+        "plausible",
+        "weekly",
+        "sonnet"
+      ]
+    },
+    {
+      "name": "batch-orchestrator",
+      "category": "universal",
+      "path": "library/agents/universal/batch-orchestrator.md",
+      "description": "Meta-agent universal — agreguje N podobnych tasków w 1 parallel batch przez Task tool (multiple tool uses w jednym message).",
+      "version": "1.0.0",
+      "model": "sonnet",
+      "token_cost": "low",
+      "requires": [
+        "model-routing",
+        "cross-agent-learning",
+        "token-budget-tracking"
+      ],
+      "compatible_with": [
+        "universal",
+        "agent-factory"
+      ],
+      "tags": [
+        "meta",
+        "batch",
+        "parallel",
+        "performance",
+        "token-saving"
+      ]
+    },
+    {
+      "name": "commit-reviewer",
+      "category": "universal",
+      "path": "library/agents/universal/commit-reviewer.md",
+      "description": "Review pojedynczego commita git — wiadomość, rozmiar diff, bezpieczeństwo, konwencje.",
+      "version": "1.0",
+      "model": "sonnet",
+      "token_cost": "low",
+      "compatible_with": [
+        "webapp",
+        "cli",
+        "automation",
+        "other"
+      ],
+      "tags": [
+        "git",
+        "code-quality",
+        "security",
+        "universal"
+      ]
+    },
+    {
+      "name": "competitor-watcher",
+      "category": "universal",
+      "path": "library/agents/universal/competitor-watcher.md",
+      "description": "Executive competitor watcher sonnet — monthly monitoring 3-5 konkurentow (crawl sitemap.xml + 20 top URLs + diff vs previous state + ranking shifts opt + backlinks opt), feed_to_strategist kontrakt C-like (objects {pr...",
+      "version": "1.0.0",
+      "model": "sonnet",
+      "token_cost": "medium",
+      "requires": [
+        "seo-advanced",
+        "polish-language-seo",
+        "cross-agent-learning",
+        "error-memory-framework",
+        "model-routing"
+      ],
+      "compatible_with": [
+        "universal"
+      ],
+      "tags": [
+        "seo",
+        "competitor",
+        "monitoring",
+        "monthly",
+        "sonnet"
+      ]
+    },
+    {
+      "name": "debugger-agent",
+      "category": "universal",
+      "path": "library/agents/universal/debugger-agent.md",
+      "description": "Universal diagnostyk — 4-step diagnostic (parse → warstwa → impact analysis → fix+test) z ripple detection.",
+      "version": "1.0",
+      "model": "sonnet",
+      "token_cost": "medium",
+      "requires": [
+        "technical-docs-standards",
+        "model-routing"
+      ],
+      "compatible_with": [
+        "webapp",
+        "cli",
+        "automation",
+        "ai-agents",
+        "other"
+      ],
+      "tags": [
+        "debugging",
+        "diagnostic",
+        "impact-analysis",
+        "ripple-detection",
+        "root-cause-analysis",
+        "universal",
+        "hybrid-model",
+        "sonnet-default",
+        "opus-upgrade"
+      ]
+    },
+    {
+      "name": "doc-validator",
+      "category": "universal",
+      "path": "library/agents/universal/doc-validator.md",
+      "description": "Use to validate technical documentation (runbook | adr | api-doc | architecture | onboarding) against template structure + working links + valid YAML/JSON snippets + 5 SC metrics from ADR-0005.",
+      "version": "1.0.0",
+      "model": "opus",
+      "token_cost": "medium",
+      "requires": [
+        "technical-docs-standards",
+        "error-memory-framework",
+        "cross-agent-learning",
+        "model-routing"
+      ],
+      "compatible_with": [
+        "universal"
+      ],
+      "tags": [
+        "docs",
+        "validation",
+        "quality",
+        "technical-docs",
+        "universal"
+      ]
+    },
+    {
+      "name": "local-seo-specialist",
+      "category": "universal",
+      "path": "library/agents/universal/local-seo-specialist.md",
+      "description": "Executive local SEO specialist sonnet dla GW PL — operacyjny wykonawca Google Business Profile (10 kategorii EN canonical primary General Contractor + secondary), citation building playbook (20 PL portali z priority q...",
+      "version": "1.0.0",
+      "model": "sonnet",
+      "token_cost": "medium",
+      "requires": [
+        "regional-seo-poland",
+        "polish-language-seo",
+        "cross-agent-learning",
+        "error-memory-framework",
+        "model-routing"
+      ],
+      "compatible_with": [
+        "universal"
+      ],
+      "tags": [
+        "seo",
+        "local",
+        "gbp",
+        "citations",
+        "reviews",
+        "polish",
+        "sonnet"
+      ]
+    },
+    {
+      "name": "mistake-recorder",
+      "category": "universal",
+      "path": "library/agents/universal/mistake-recorder.md",
+      "description": "Use when an agent or pipeline encounters a recurring or notable error that should be captured in agent's per-project memory.",
+      "version": "1.0.2",
+      "model": "haiku",
+      "token_cost": "low",
+      "requires": [
+        "error-memory-framework",
+        "cross-agent-learning",
+        "model-routing"
+      ],
+      "compatible_with": [
+        "universal"
+      ],
+      "tags": [
+        "learning",
+        "errors",
+        "memory",
+        "idempotency",
+        "universal"
+      ]
+    },
+    {
+      "name": "pilot-orchestrator",
+      "category": "universal",
+      "path": "library/agents/universal/pilot-orchestrator.md",
+      "description": "Meta-agent universal — auto-pilot agenta na real-data fixtures (anonymized) zamiast Python pseudo-smoke.",
+      "version": "1.0.0",
+      "model": "opus",
+      "token_cost": "medium",
+      "requires": [
+        "error-memory-framework",
+        "cross-agent-learning",
+        "model-routing"
+      ],
+      "compatible_with": [
+        "agent-factory",
+        "universal"
+      ],
+      "tags": [
+        "meta",
+        "pilot",
+        "real-test",
+        "fixtures",
+        "validation",
+        "factory-quality-gate"
+      ]
+    },
+    {
+      "name": "plan-executor",
+      "category": "universal",
+      "path": "library/agents/universal/plan-executor.md",
+      "description": "Wykonawca planów wygenerowanych przez factory-planner / crm-task-planner / analog.",
+      "version": "1.2.0",
+      "model": "sonnet",
+      "token_cost": "medium",
+      "requires": [
+        "model-routing"
+      ],
+      "compatible_with": [
+        "webapp",
+        "cli",
+        "automation",
+        "ai-agents",
+        "other"
+      ],
+      "tags": [
+        "execution",
+        "orchestration",
+        "plans",
+        "token-optimization",
+        "universal"
+      ]
+    },
+    {
+      "name": "plan-progress-tracker",
+      "category": "universal",
+      "path": "library/agents/universal/plan-progress-tracker.md",
+      "description": "Use after completing a plan stage to atomically sync 3 places: plan file (table cell with ✅ + ISO date + commit hash), next-session-{slot}.md (move from W trakcie → Zamknięte), activity-log.jsonl (stage_completed entry).",
+      "version": "1.0.1",
+      "model": "sonnet",
+      "token_cost": "medium",
+      "requires": [
+        "plan-sync-protocol",
+        "multi-plan-workflow",
+        "model-routing"
+      ],
+      "compatible_with": [
+        "universal"
+      ],
+      "tags": [
+        "planning",
+        "plan-sync",
+        "idempotency",
+        "universal"
+      ]
+    },
+    {
+      "name": "polish-proofreader",
+      "category": "universal",
+      "path": "library/agents/universal/polish-proofreader.md",
+      "description": "Use when a Polish text file (.md, .mdx, .tsx string literals) needs typography + grammar lint before publish.",
+      "version": "1.0.0",
+      "model": "sonnet",
+      "token_cost": "low",
+      "requires": [
+        "polish-typography",
+        "cross-agent-learning",
+        "error-memory-framework",
+        "model-routing"
+      ],
+      "compatible_with": [
+        "universal",
+        "webapp"
+      ],
+      "tags": [
+        "polish",
+        "typography",
+        "proofreading",
+        "lint",
+        "content-quality",
+        "hitl-gate"
+      ]
+    },
+    {
+      "name": "portfolio-content-writer",
+      "category": "universal",
+      "path": "library/agents/universal/portfolio-content-writer.md",
+      "description": "Use to generate copy for portfolio sections (Hero / O-mnie / Co-robię / Case-studies / Kontakt) in PL with 2 variants (freelance OR job application OR dual hybrid).",
+      "version": "1.0.0",
+      "model": "opus",
+      "token_cost": "medium",
+      "requires": [
+        "polish-typography",
+        "personal-branding-portfolio-pl",
+        "polish-language-seo",
+        "cross-agent-learning",
+        "error-memory-framework",
+        "model-routing"
+      ],
+      "compatible_with": [
+        "universal",
+        "webapp"
+      ],
+      "tags": [
+        "content",
+        "portfolio",
+        "copywriting",
+        "polish",
+        "hitl",
+        "hybrid-career"
+      ]
+    },
+    {
+      "name": "project-auditor",
+      "category": "universal",
+      "path": "library/agents/universal/project-auditor.md",
+      "description": "Uniwersalny in-project auditor — przeprowadza strukturyzowany audyt wszystkich agentów/skilli/hooków w projekcie klienckim, generuje feedback report wg wzorca (TL;DR 10 ustaleń + POSITIVES + NEGATIVES z severity HIGH/...",
+      "version": "1.0.0",
+      "model": "opus",
+      "token_cost": "medium",
+      "requires": [
+        "model-routing",
+        "cross-agent-learning",
+        "error-memory-framework"
+      ],
+      "compatible_with": [
+        "universal"
+      ],
+      "tags": [
+        "meta",
+        "audit",
+        "feedback",
+        "project-quality",
+        "learning-loop",
+        "universal"
+      ]
+    },
+    {
+      "name": "project-recommendations-writer",
+      "category": "universal",
+      "path": "library/agents/universal/project-recommendations-writer.md",
+      "description": "Use to generate a copy-ready brief for a new similar project, synthesizing accumulated knowledge (lessons + reflections + activity-log + dobre-praktyki + errors).",
+      "version": "1.0.1",
+      "model": "opus",
+      "token_cost": "medium",
+      "requires": [
+        "error-memory-framework",
+        "cross-agent-learning",
+        "model-routing"
+      ],
+      "compatible_with": [
+        "universal"
+      ],
+      "tags": [
+        "learning",
+        "recommendations",
+        "synthesis",
+        "project-knowledge",
+        "universal"
+      ]
+    },
+    {
+      "name": "seo-auditor",
+      "category": "universal",
+      "path": "library/agents/universal/seo-auditor.md",
+      "description": "Auditor SEO opus — Lighthouse (degraded mode if not installed) + GSC (manual default, --gsc-api opt-in) + crawl sitemap.xml depth 2 (max 100 URLs) + Schema.org validator (sleep 1s + retry 3× + local fallback) + compet...",
+      "version": "1.0.0",
+      "model": "opus",
+      "token_cost": "high",
+      "requires": [
+        "seo-fundamentals",
+        "seo-advanced",
+        "secrets-handling",
+        "cross-agent-learning",
+        "error-memory-framework",
+        "model-routing"
+      ],
+      "compatible_with": [
+        "universal"
+      ],
+      "tags": [
+        "seo",
+        "audit",
+        "lighthouse",
+        "technical",
+        "opus"
+      ]
+    },
+    {
+      "name": "seo-content-writer",
+      "category": "universal",
+      "path": "library/agents/universal/seo-content-writer.md",
+      "description": "Content writer SEO opus dla GW PL — produkuje 1500-3000 słów wpisy MDX (Next.js 15 compatible) PL z brand voice (ekspercki/przyjazny/techniczny/default), E-E-A-T markers (autor card + ≥1 norma PN-EN + ≥1 lokalne case...",
+      "version": "1.0.0",
+      "model": "opus",
+      "token_cost": "high",
+      "requires": [
+        "seo-fundamentals",
+        "polish-language-seo",
+        "content-strategy-construction",
+        "construction-domain-rules",
+        "cross-agent-learning",
+        "error-memory-framework",
+        "model-routing"
+      ],
+      "compatible_with": [
+        "universal"
+      ],
+      "tags": [
+        "content",
+        "writer",
+        "seo",
+        "polish",
+        "gw",
+        "opus"
+      ]
+    },
+    {
+      "name": "seo-strategist",
+      "category": "universal",
+      "path": "library/agents/universal/seo-strategist.md",
+      "description": "Strategist SEO opus — keyword research (WebFetch SERP google.pl), topical map (hub+spoke), intent mapping (informational/commercial/transactional), content roadmap Q1-Q4, batch generation briefów JSON (kontrakt A do s...",
+      "version": "1.0.0",
+      "model": "opus",
+      "token_cost": "high",
+      "requires": [
+        "seo-fundamentals",
+        "seo-advanced",
+        "polish-language-seo",
+        "regional-seo-poland",
+        "cross-agent-learning",
+        "error-memory-framework",
+        "model-routing"
+      ],
+      "compatible_with": [
+        "universal"
+      ],
+      "tags": [
+        "seo",
+        "strategy",
+        "keyword-research",
+        "content-roadmap",
+        "opus"
+      ]
+    },
+    {
+      "name": "session-router",
+      "category": "universal",
+      "path": "library/agents/universal/session-router.md",
+      "description": "Use at session start when working in a project with ≥2 next-session-*.md files.",
+      "version": "1.0.1",
+      "model": "haiku",
+      "token_cost": "low",
+      "requires": [
+        "multi-plan-workflow"
+      ],
+      "compatible_with": [
+        "universal"
+      ],
+      "tags": [
+        "planning",
+        "multi-plan",
+        "session-routing",
+        "universal"
+      ]
+    },
+    {
+      "name": "solution-reflector",
+      "category": "universal",
+      "path": "library/agents/universal/solution-reflector.md",
+      "description": ">",
+      "version": "1.0.0",
+      "model": "sonnet",
+      "token_cost": "medium",
+      "requires": [
+        "solution-memory",
+        "model-routing"
+      ],
+      "compatible_with": [
+        "universal"
+      ],
+      "tags": [
+        "solution-memory",
+        "learning",
+        "stop-hook",
+        "recall",
+        "dead-ends",
+        "anti-pii",
+        "scope-classification",
+        "universal"
+      ]
+    },
+    {
+      "name": "task-planner",
+      "category": "universal",
+      "path": "library/agents/universal/task-planner.md",
+      "description": "Planuje złożone zadania wieloetapowe i routuje podzadania do właściwych modeli (opus/sonnet/haiku).",
+      "version": "1.0",
+      "model": "opus",
+      "token_cost": "medium",
+      "requires": [
+        "model-routing"
+      ],
+      "compatible_with": [
+        "webapp",
+        "cli",
+        "automation",
+        "other"
+      ],
+      "tags": [
+        "planning",
+        "token-optimization",
+        "universal",
+        "orchestration"
+      ]
+    },
+    {
+      "name": "tech-doc-writer",
+      "category": "universal",
+      "path": "library/agents/universal/tech-doc-writer.md",
+      "description": "Universal pisarz dokumentacji technicznej v1.0 — dwa typy artefaktów: runbook operacyjny (z debug-reports) i ADR retroaktywny (rekonstrukcja motywacji z git blame + kodu).",
+      "version": "1.1.0",
+      "model": "sonnet",
+      "token_cost": "medium",
+      "requires": [
+        "technical-docs-standards",
+        "model-routing"
+      ],
+      "compatible_with": [
+        "webapp",
+        "cli",
+        "automation",
+        "ai-agents",
+        "other"
+      ],
+      "tags": [
+        "documentation",
+        "runbooks",
+        "adr",
+        "retroactive-adr",
+        "technical-writing",
+        "universal",
+        "hybrid-model",
+        "sonnet-default",
+        "opus-upgrade",
+        "hitl-gate",
+        "post-pilot-patches-2026-04-28"
+      ]
+    },
+    {
+      "name": "calculator-builder",
+      "category": "webapp",
+      "path": "library/agents/webapp/calculator-builder.md",
+      "description": "Executive calculator builder sonnet — generuje 2 typy kalkulatorow wycen GW PL: --type=full-house (5-step wizard powierzchnia/typ konstrukcji/lokalizacja/zakres SSO-SSZ/opcje) lub --type=roof-truss (4-step wizard typ...",
+      "version": "1.0.0",
+      "model": "sonnet",
+      "token_cost": "high",
+      "requires": [
+        "webapp-calculator-patterns",
+        "calculator-rules-engine",
+        "construction-domain-rules",
+        "responsive-web-standards-2026",
+        "cross-agent-learning",
+        "error-memory-framework",
+        "model-routing"
+      ],
+      "compatible_with": [
+        "webapp"
+      ],
+      "tags": [
+        "calculator",
+        "builder",
+        "nextjs",
+        "webapp",
+        "sonnet"
+      ]
+    },
+    {
+      "name": "code-implementer",
+      "category": "webapp",
+      "path": "library/agents/webapp/code-implementer.md",
+      "description": "Hybryda architekt+implementer dla webapp — NIE czysty pisarz kodu.",
+      "version": "1.0",
+      "model": "opus",
+      "token_cost": "high",
+      "requires": [
+        "webapp-standards",
+        "webapp-cicd-templates",
+        "webapp-security-hardening",
+        "technical-docs-standards",
+        "model-routing"
+      ],
+      "compatible_with": [
+        "webapp"
+      ],
+      "tags": [
+        "webapp",
+        "code-implementation",
+        "architect-implementer",
+        "hybrid",
+        "options-first",
+        "extend-dont-edit",
+        "typescript",
+        "hono",
+        "nextjs",
+        "prisma"
+      ]
+    },
+    {
+      "name": "infrastructure-builder",
+      "category": "webapp",
+      "path": "library/agents/webapp/infrastructure-builder.md",
+      "description": "Implementator infrastruktury produkcyjnej webapp — używa 6 skilli (webapp-docker-templates + webapp-ci-cd-workflows + webapp-observability-stack + webapp-backup-dr + webapp-reverse-proxy-tls + webapp-threat-model-temp...",
+      "version": "1.0.0",
+      "model": "opus",
+      "token_cost": "high",
+      "requires": [
+        "webapp-docker-templates",
+        "webapp-ci-cd-workflows",
+        "webapp-observability-stack",
+        "webapp-backup-dr",
+        "webapp-reverse-proxy-tls",
+        "webapp-threat-model-template",
+        "cross-agent-learning",
+        "error-memory-framework"
+      ],
+      "compatible_with": [
+        "webapp"
+      ],
+      "tags": [
+        "infrastructure",
+        "docker",
+        "ci-cd",
+        "observability",
+        "backup-dr",
+        "reverse-proxy",
+        "threat-model",
+        "audit-ready",
+        "new-agent",
+        "opus",
+        "webapp"
+      ]
+    },
+    {
+      "name": "interactivity-designer",
+      "category": "webapp",
+      "path": "library/agents/webapp/interactivity-designer.md",
+      "description": "Use to design + implement subtle motion/microinteractions for portfolio sections (Hero, Case-study reveal, CTA dual, scroll-reveal sections).",
+      "version": "1.0.0",
+      "model": "opus",
+      "token_cost": "medium",
+      "requires": [
+        "portfolio-design-patterns",
+        "responsive-web-standards-2026",
+        "cross-agent-learning",
+        "error-memory-framework",
+        "model-routing"
+      ],
+      "compatible_with": [
+        "webapp"
+      ],
+      "tags": [
+        "motion",
+        "microinteractions",
+        "framer-motion",
+        "a11y",
+        "prefers-reduced-motion",
+        "portfolio"
+      ]
+    },
+    {
+      "name": "ios-ux-checker",
+      "category": "webapp",
+      "path": "library/agents/webapp/ios-ux-checker.md",
+      "description": "Strażnik UX iOS Springboard / liquid glass dla webapp single-tenant DESKTOP-FIRST (laptop 1280-1920px primary + mobile responsive Safari iPhone fallback) — waliduje implementację ekranu względem skilla `liquid-glass-d...",
+      "version": "1.0.0",
+      "model": "opus",
+      "token_cost": "high",
+      "requires": [
+        "liquid-glass-design-system",
+        "cross-agent-learning",
+        "error-memory-framework"
+      ],
+      "compatible_with": [
+        "webapp"
+      ],
+      "tags": [
+        "ux",
+        "ios",
+        "accessibility",
+        "walidacja",
+        "kontrakt-B",
+        "desktop-first",
+        "wcag",
+        "apple-hig"
+      ]
+    },
+    {
+      "name": "offer-builder",
+      "category": "webapp",
+      "path": "library/agents/webapp/offer-builder.md",
+      "description": "Orchestrator ofertowania dla webapp PL (universal) — Next.js 14.2 LTS App Router wizard 4-krokowy (klient → pozycje kosztorysowe → opcjonalny wykaz drewna → preview), Prisma schema (Offer/OfferItem/Client/WoodList/Woo...",
+      "version": "1.0.0",
+      "model": "sonnet",
+      "token_cost": "medium",
+      "requires": [
+        "quotation-pl-rules",
+        "roofing-domain-rules",
+        "pdf-document-templates",
+        "single-user-auth-pl",
+        "data-protection-rodo-pl",
+        "liquid-glass-design-system",
+        "webapp-standards",
+        "responsive-web-standards-2026",
+        "cross-agent-learning",
+        "error-memory-framework",
+        "model-routing"
+      ],
+      "compatible_with": [
+        "webapp"
+      ],
+      "tags": [
+        "orchestrator",
+        "offer",
+        "prisma",
+        "nextjs",
+        "audit-trail",
+        "rodo",
+        "webapp",
+        "pl",
+        "wizard"
+      ]
+    },
+    {
+      "name": "page-speed-optimizer",
+      "category": "webapp",
+      "path": "library/agents/webapp/page-speed-optimizer.md",
+      "description": "Executive page speed optimizer sonnet — Lighthouse baseline (degraded mode if not installed, web-vitals.js fallback z disclaimer 'Estimated, run Lighthouse for ground truth') + apply patches per CWV impact ordering (a...",
+      "version": "1.0.0",
+      "model": "sonnet",
+      "token_cost": "medium",
+      "requires": [
+        "responsive-web-standards-2026",
+        "cross-agent-learning",
+        "error-memory-framework",
+        "model-routing"
+      ],
+      "compatible_with": [
+        "webapp"
+      ],
+      "tags": [
+        "performance",
+        "cwv",
+        "lighthouse",
+        "optimization",
+        "webapp",
+        "sonnet"
+      ]
+    },
+    {
+      "name": "pdf-document-generator",
+      "category": "webapp",
+      "path": "library/agents/webapp/pdf-document-generator.md",
+      "description": "Implementuje generatory PDF dla aplikacji ofertujących PL (Next.js 14.2 LTS + @react-pdf/renderer) zgodnie ze skillem pdf-document-templates — 2 komponenty React (OfferDocument + WoodListDocument), klauzula RODO (Info...",
+      "version": "1.0.0",
+      "model": "sonnet",
+      "token_cost": "medium",
+      "requires": [
+        "pdf-document-templates",
+        "quotation-pl-rules",
+        "roofing-domain-rules",
+        "data-protection-rodo-pl",
+        "webapp-standards",
+        "cross-agent-learning",
+        "error-memory-framework",
+        "model-routing"
+      ],
+      "compatible_with": [
+        "webapp"
+      ],
+      "tags": [
+        "pdf",
+        "react-pdf",
+        "generator",
+        "audit-trail",
+        "polish",
+        "nextjs",
+        "sonnet"
+      ]
+    },
+    {
+      "name": "static-site-builder",
+      "category": "webapp",
+      "path": "library/agents/webapp/static-site-builder.md",
+      "description": "Builder sonnet prostej strony statycznej VANILLA (HTML/CSS/JS, jeden index.html, GitHub Pages, zero frameworka, zero build-stepu).",
+      "version": "1.0.0",
+      "model": "sonnet",
+      "token_cost": "high",
+      "requires": [
+        "static-site-premium-patterns",
+        "responsive-web-standards-2026",
+        "video-web-integration",
+        "polish-typography",
+        "cross-agent-learning",
+        "error-memory-framework",
+        "model-routing"
+      ],
+      "compatible_with": [
+        "webapp"
+      ],
+      "tags": [
+        "webapp",
+        "static-site",
+        "vanilla",
+        "html",
+        "css",
+        "javascript",
+        "builder",
+        "portfolio",
+        "github-pages",
+        "no-framework",
+        "sonnet"
+      ]
+    },
+    {
+      "name": "web-builder",
+      "category": "webapp",
+      "path": "library/agents/webapp/web-builder.md",
+      "description": "Executive web builder sonnet — orkiestruje Next.js 15 site bootstrap (deleguje do webapp-bootstrapper przez Task tool, NIE duplikuje) + 4 layers integration (SEO meta+schema.org+sitemap | content slot MDX | analytics...",
+      "version": "1.1.0",
+      "model": "sonnet",
+      "token_cost": "high",
+      "requires": [
+        "responsive-web-standards-2026",
+        "webapp-standards",
+        "seo-fundamentals",
+        "webapp-security-hardening",
+        "cross-agent-learning",
+        "error-memory-framework",
+        "model-routing"
+      ],
+      "compatible_with": [
+        "webapp"
+      ],
+      "tags": [
+        "webapp",
+        "nextjs",
+        "builder",
+        "seo",
+        "content",
+        "portfolio",
+        "sonnet",
+        "paczka-portfolio"
+      ]
+    },
+    {
+      "name": "webapp-bootstrapper",
+      "category": "webapp",
+      "path": "library/agents/webapp/webapp-bootstrapper.md",
+      "description": "Inicjalizuje nowy projekt webowy wg standardów operatora — monorepo Turborepo z Next.js 15, Hono.js 4.6, Prisma 5.22, TypeScript strict, ESLint, Prettier, Husky, Docker, GitHub Actions CI.",
+      "version": "1.0",
+      "model": "sonnet",
+      "token_cost": "high",
+      "requires": [
+        "webapp-standards"
+      ],
+      "compatible_with": [
+        "webapp"
+      ],
+      "tags": [
+        "webapp",
+        "bootstrap",
+        "monorepo",
+        "setup",
+        "turborepo"
+      ]
+    },
+    {
+      "name": "webapp-code-reviewer",
+      "category": "webapp",
+      "path": "library/agents/webapp/webapp-code-reviewer.md",
+      "description": "Review kodu TypeScript/React wg standardów operatora — no-any, floating promises, non-null assertion, separacja warstw, TanStack Query, import order.",
+      "version": "1.0",
+      "model": "sonnet",
+      "token_cost": "low",
+      "requires": [
+        "webapp-standards"
+      ],
+      "compatible_with": [
+        "webapp"
+      ],
+      "tags": [
+        "code-review",
+        "typescript",
+        "react",
+        "webapp",
+        "quality"
+      ]
+    },
+    {
+      "name": "webapp-pre-deploy-checker",
+      "category": "webapp",
+      "path": "library/agents/webapp/webapp-pre-deploy-checker.md",
+      "description": "Automatyzuje 10-punktową checklistę pre-deploy operatora.",
+      "version": "1.0",
+      "model": "sonnet",
+      "token_cost": "low",
+      "requires": [
+        "webapp-standards"
+      ],
+      "compatible_with": [
+        "webapp"
+      ],
+      "tags": [
+        "deploy",
+        "checklist",
+        "webapp",
+        "docker",
+        "ci"
+      ]
+    },
+    {
+      "name": "webapp-security-scanner",
+      "category": "webapp",
+      "path": "library/agents/webapp/webapp-security-scanner.md",
+      "description": "Skanuje projekt webowy pod kątem krytycznych błędów bezpieczeństwa wg standardów operatora.",
+      "version": "1.0",
+      "model": "sonnet",
+      "token_cost": "low",
+      "requires": [
+        "webapp-standards"
+      ],
+      "compatible_with": [
+        "webapp"
+      ],
+      "tags": [
+        "security",
+        "webapp",
+        "jwt",
+        "secrets",
+        "auth"
+      ]
+    }
+  ],
+  "skills": [
+    {
+      "name": "ai-agents-standards",
+      "category": "ai-agents",
+      "path": "library/skills/ai-agents/ai-agents-standards/SKILL.md",
+      "description": "Standardy budowania agentów AI opartych o Anthropic SDK + WebSocket + Redis + PostgreSQL."
+    },
+    {
+      "name": "n8n-standards",
+      "category": "automation",
+      "path": "library/skills/automation/n8n-standards/SKILL.md",
+      "description": "Kompletne standardy budowy automatyzacji n8n operatora — Docker, workflow, backup, security, webhooks, testy."
+    },
+    {
+      "name": "construction-domain-rules",
+      "category": "universal",
+      "path": "library/skills/universal/construction-domain-rules/SKILL.md",
+      "description": "Wiedza branżowa generyczna GW PL — stany deweloperskie (SSO/SSZ), zakresy prac GW (fundamenty/mury/stropy/wieńce/kominy/dachy + więźba), słownik branżowy 60-80 terminów PL, typy umów (zlecenie/dzieło/B2B/roboty budowl...",
+      "version": "1.0.0",
+      "token_cost": "medium",
+      "compatible_with": [
+        "universal"
+      ],
+      "tags": [
+        "domain",
+        "construction",
+        "gw",
+        "poland",
+        "building"
+      ]
+    },
+    {
+      "name": "conversation-learning",
+      "category": "universal",
+      "path": "library/skills/universal/conversation-learning/SKILL.md",
+      "description": "Wzorzec ekstrakcji lessons z chat history (operator feedback w sesji), NIE tylko z committed artifacts (lessons.jsonl / reflections).",
+      "version": "1.1.0",
+      "token_cost": "low",
+      "requires": [
+        "error-memory-framework",
+        "cross-agent-learning",
+        "model-routing"
+      ],
+      "compatible_with": [
+        "universal",
+        "agent-factory",
+        "embedded-factory"
+      ],
+      "tags": [
+        "learning",
+        "conversation",
+        "feedback-extraction",
+        "lessons-pipeline",
+        "intelligence",
+        "hook-production"
+      ]
+    },
+    {
+      "name": "cross-agent-learning",
+      "category": "universal",
+      "path": "library/skills/universal/cross-agent-learning/SKILL.md",
+      "description": "Use when designing or iterating any agent (v1.1+) that should learn from past mistakes.",
+      "version": "1.1.0",
+      "token_cost": "medium",
+      "requires": [
+        "error-memory-framework"
+      ],
+      "compatible_with": [
+        "universal",
+        "embedded-factory"
+      ],
+      "tags": [
+        "learning",
+        "cross-agent",
+        "pre-execution",
+        "context-loading",
+        "universal",
+        "embedded-mode"
+      ]
+    },
+    {
+      "name": "data-protection-rodo-pl",
+      "category": "universal",
+      "path": "library/skills/universal/data-protection-rodo-pl/SKILL.md",
+      "description": "RODO compliance dla małej firmy PL (B2C usługi) — podstawy prawne, prawa podmiotów (implementacja techniczna), retencja, audit-trail, klauzula informacyjna (wzór PDF).",
+      "version": "1.0.0",
+      "token_cost": "medium",
+      "compatible_with": [
+        "universal"
+      ],
+      "tags": [
+        "compliance",
+        "rodo",
+        "gdpr",
+        "poland",
+        "audit-trail"
+      ]
+    },
+    {
+      "name": "error-memory-framework",
+      "category": "universal",
+      "path": "library/skills/universal/error-memory-framework/SKILL.md",
+      "description": "Use when an agent makes an error that may recur, when designing or iterating an agent (read its errors-{name}.md before next version), or when reviewing project for systemic patterns.",
+      "version": "1.0.0",
+      "token_cost": "medium",
+      "compatible_with": [
+        "universal"
+      ],
+      "tags": [
+        "learning",
+        "errors",
+        "memory",
+        "idempotency",
+        "universal"
+      ]
+    },
+    {
+      "name": "github-pages-deploy",
+      "category": "universal",
+      "path": "library/skills/universal/github-pages-deploy/SKILL.md",
+      "description": "Publikacja strony statycznej (HTML/CSS/JS) na GitHub Pages z własną domeną — repo public + Settings→Pages source main/root, plik CNAME, rekordy DNS (4× A na 185.199.108-111.153 + CNAME www→<user>.github.io), custom do...",
+      "version": "1.0.0",
+      "token_cost": "low",
+      "compatible_with": [
+        "webapp",
+        "cli",
+        "automation",
+        "other"
+      ],
+      "tags": [
+        "github-pages",
+        "deployment",
+        "dns",
+        "custom-domain",
+        "static-site",
+        "https",
+        "cname"
+      ]
+    },
+    {
+      "name": "multi-plan-workflow",
+      "category": "universal",
+      "path": "library/skills/universal/multi-plan-workflow/SKILL.md",
+      "description": "Use when working in a project with `next-session*.md` files (knowledge-base/ or docs/) or with `plans/` directory containing >1 active plan.",
+      "version": "1.0.0",
+      "token_cost": "medium",
+      "compatible_with": [
+        "universal"
+      ],
+      "tags": [
+        "planning",
+        "workflow",
+        "multi-plan",
+        "sessions",
+        "universal"
+      ]
+    },
+    {
+      "name": "personal-branding-portfolio-pl",
+      "category": "universal",
+      "path": "library/skills/universal/personal-branding-portfolio-pl/SKILL.md",
+      "description": "Wzorce narracji portfolio PL dla profesjonalistów hybrydowych (np.",
+      "version": "1.0.0",
+      "token_cost": "low",
+      "requires": [
+        "polish-typography"
+      ],
+      "compatible_with": [
+        "universal",
+        "webapp"
+      ],
+      "tags": [
+        "portfolio",
+        "personal-branding",
+        "content",
+        "narrative",
+        "polish",
+        "dual-cta"
+      ]
+    },
+    {
+      "name": "plan-sync-protocol",
+      "category": "universal",
+      "path": "library/skills/universal/plan-sync-protocol/SKILL.md",
+      "description": "Use after completing any stage of a plan in `plans/` directory.",
+      "version": "1.0.0",
+      "token_cost": "medium",
+      "requires": [
+        "multi-plan-workflow"
+      ],
+      "compatible_with": [
+        "universal"
+      ],
+      "tags": [
+        "planning",
+        "plan-sync",
+        "idempotency",
+        "drift-detection",
+        "universal"
+      ]
+    },
+    {
+      "name": "polish-language-seo",
+      "category": "universal",
+      "path": "library/skills/universal/polish-language-seo/SKILL.md",
+      "description": "PL-specific SEO — fleksja w keyword research (7 przypadków × liczba × rodzaj), polskie SERP behavior, top 16+ PL katalogów biznesowych (OLX, Allegro, Otodom, Aleo, Panorama Firm, Oferia, MuratorPlus etc.), stop words...",
+      "version": "1.0.0",
+      "token_cost": "medium",
+      "requires": [
+        "seo-fundamentals"
+      ],
+      "compatible_with": [
+        "universal"
+      ],
+      "tags": [
+        "seo",
+        "language",
+        "polish",
+        "pl"
+      ]
+    },
+    {
+      "name": "polish-typography",
+      "category": "universal",
+      "path": "library/skills/universal/polish-typography/SKILL.md",
+      "description": "Wzorce poprawnej polskiej typografii i interpunkcji — szerszy niż polish-language-seo (które jest tylko o SEO).",
+      "version": "1.0.0",
+      "token_cost": "low",
+      "compatible_with": [
+        "universal",
+        "webapp",
+        "ai-agents"
+      ],
+      "tags": [
+        "typography",
+        "language",
+        "polish",
+        "pl",
+        "content",
+        "proofreading"
+      ]
+    },
+    {
+      "name": "prompt-caching-patterns",
+      "category": "universal",
+      "path": "library/skills/universal/prompt-caching-patterns/SKILL.md",
+      "description": "Wzorce użycia Anthropic prompt caching dla repetitive contexts.",
+      "version": "1.0.0",
+      "token_cost": "low",
+      "requires": [
+        "model-routing",
+        "token-budget-tracking"
+      ],
+      "compatible_with": [
+        "universal",
+        "agent-factory",
+        "ai-agents"
+      ],
+      "tags": [
+        "tokens",
+        "performance",
+        "caching",
+        "anthropic-sdk",
+        "cost-optimization"
+      ]
+    },
+    {
+      "name": "quotation-pl-rules",
+      "category": "universal",
+      "path": "library/skills/universal/quotation-pl-rules/SKILL.md",
+      "description": "Reguły ofertowania ryczałtowego PL — VAT 8/23%, struktura oferty, pozycje kosztorysowe (dekarstwo jako referencja), kontrakt z pdf-document-templates.",
+      "version": "1.0.0",
+      "token_cost": "medium",
+      "compatible_with": [
+        "universal"
+      ],
+      "tags": [
+        "domain",
+        "quotation",
+        "vat",
+        "poland",
+        "ryczalt"
+      ]
+    },
+    {
+      "name": "regional-seo-poland",
+      "category": "universal",
+      "path": "library/skills/universal/regional-seo-poland/SKILL.md",
+      "description": "Local SEO PL — Google Business Profile optimization (10 GBP categories EN canonical), NAP consistency, citation building (priority queue P1-P5, top 20 PL portali), reviews playbook (email + SMS + WhatsApp PL templates...",
+      "version": "1.0.0",
+      "token_cost": "medium",
+      "requires": [
+        "seo-fundamentals",
+        "polish-language-seo"
+      ],
+      "compatible_with": [
+        "universal"
+      ],
+      "tags": [
+        "seo",
+        "local",
+        "regional",
+        "gbp",
+        "pl"
+      ]
+    },
+    {
+      "name": "roofing-domain-rules",
+      "category": "universal",
+      "path": "library/skills/universal/roofing-domain-rules/SKILL.md",
+      "description": "Słownik domeny dekarskiej PL — 8 typów drewna konstrukcyjnego, formaty wymiarów wykazu drewna (AxBxC + jednostki mb/szt), pokrycia dachowe, obróbki blacharskie i orynnowanie.",
+      "version": "1.0.0",
+      "token_cost": "medium",
+      "compatible_with": [
+        "universal"
+      ],
+      "tags": [
+        "domain",
+        "roofing",
+        "dekarstwo",
+        "poland",
+        "wood-list"
+      ]
+    },
+    {
+      "name": "secrets-handling",
+      "category": "universal",
+      "path": "library/skills/universal/secrets-handling/SKILL.md",
+      "description": "Use when working in a project with .env file present, handling Docker Compose configurations, environment variables, or any task involving secrets/credentials.",
+      "version": "1.0.0",
+      "token_cost": "medium",
+      "compatible_with": [
+        "universal"
+      ],
+      "tags": [
+        "security",
+        "secrets",
+        "env",
+        "docker-compose",
+        "universal"
+      ]
+    },
+    {
+      "name": "seo-advanced",
+      "category": "universal",
+      "path": "library/skills/universal/seo-advanced/SKILL.md",
+      "description": "SEO competitive edge — Core Web Vitals optimization (WHAT+WHY+HIGH-LEVEL HOW), E-E-A-T markers per industry (construction/medical/finance/legal), topical clusters (hub+spoke), intent mapping, content gap analysis, SER...",
+      "version": "1.0.0",
+      "token_cost": "medium",
+      "requires": [
+        "seo-fundamentals"
+      ],
+      "compatible_with": [
+        "universal"
+      ],
+      "tags": [
+        "seo",
+        "advanced",
+        "optimization"
+      ]
+    },
+    {
+      "name": "seo-fundamentals",
+      "category": "universal",
+      "path": "library/skills/universal/seo-fundamentals/SKILL.md",
+      "description": "Fundament SEO uniwersalny dla każdej strony — meta tagi, Schema.org JSON-LD, sitemap.xml, robots.txt, canonical, hreflang, Core Web Vitals 2026 baseline, internal linking, security headers.",
+      "version": "1.0.0",
+      "token_cost": "medium",
+      "compatible_with": [
+        "universal"
+      ],
+      "tags": [
+        "seo",
+        "technical",
+        "foundation"
+      ]
+    },
+    {
+      "name": "solution-memory",
+      "category": "universal",
+      "path": "library/skills/universal/solution-memory/SKILL.md",
+      "description": ">",
+      "version": "1.0.0",
+      "token_cost": "low",
+      "requires": [
+        "model-routing",
+        "cross-agent-learning"
+      ],
+      "compatible_with": [
+        "universal"
+      ],
+      "tags": [
+        "solution-memory",
+        "learning",
+        "recall",
+        "dead-ends",
+        "stop-hook",
+        "scope-classification",
+        "sessions",
+        "universal"
+      ]
+    },
+    {
+      "name": "technical-docs-standards",
+      "category": "universal",
+      "path": "library/skills/universal/technical-docs-standards/SKILL.md",
+      "description": "Gdy użytkownik pracuje nad dokumentacją techniczną (ADR, runbooki, architecture, API docs) w projekcie lub konfiguruje enforcement docs w CI.",
+      "version": "1.0",
+      "token_cost": "medium",
+      "compatible_with": [
+        "webapp",
+        "cli",
+        "automation",
+        "ai-agents",
+        "other"
+      ],
+      "tags": [
+        "documentation",
+        "adr",
+        "runbooks",
+        "architecture",
+        "mermaid",
+        "c4",
+        "api-docs",
+        "technical-writing"
+      ]
+    },
+    {
+      "name": "token-budget-tracking",
+      "category": "universal",
+      "path": "library/skills/universal/token-budget-tracking/SKILL.md",
+      "description": "Convention dla każdego agenta — emit `actual_token_cost` field w activity-log entry post-execution.",
+      "version": "1.0.0",
+      "token_cost": "low",
+      "requires": [
+        "cross-agent-learning",
+        "model-routing"
+      ],
+      "compatible_with": [
+        "universal",
+        "agent-factory"
+      ],
+      "tags": [
+        "tokens",
+        "cost",
+        "performance",
+        "analytics",
+        "operationalize"
+      ]
+    },
+    {
+      "name": "analytics-conversion-tracking",
+      "category": "webapp",
+      "path": "library/skills/webapp/analytics-conversion-tracking/SKILL.md",
+      "description": "Analytics tracking webapp — GA4 setup (gtag.js inline + next/script async + env vars + IP anonimization PL + cookie consent), GTM tagged ≥3 third-party scripts, GSC sitemap/URL inspection, Plausible/PostHog privacy-fi...",
+      "version": "1.0.0",
+      "token_cost": "medium",
+      "requires": [
+        "responsive-web-standards-2026"
+      ],
+      "compatible_with": [
+        "webapp"
+      ],
+      "tags": [
+        "analytics",
+        "ga4",
+        "gtm",
+        "gsc",
+        "plausible",
+        "posthog",
+        "tracking",
+        "webapp"
+      ]
+    },
+    {
+      "name": "calculator-rules-engine",
+      "category": "webapp",
+      "path": "library/skills/webapp/calculator-rules-engine/SKILL.md",
+      "description": "Rules engine dla kalkulatorow wycen GW PL — YAML config 3-wymiarowy (cennik jednostkowy zl/m² + 16 wojewodztw mnozniki 0.85-1.20 + sezonowe mnozniki 0.95-1.15), custom rules injection per projekt (rules-override.yaml...",
+      "version": "1.0.0",
+      "token_cost": "medium",
+      "requires": [
+        "webapp-calculator-patterns",
+        "construction-domain-rules"
+      ],
+      "compatible_with": [
+        "webapp"
+      ],
+      "tags": [
+        "calculator",
+        "rules-engine",
+        "yaml",
+        "config",
+        "pricing",
+        "construction"
+      ]
+    },
+    {
+      "name": "content-strategy-construction",
+      "category": "webapp",
+      "path": "library/skills/webapp/content-strategy-construction/SKILL.md",
+      "description": "Content marketing strategy GW PL — case studies template, koszty m² long-tail keywords, 12 etapów budowy guide, 25+ FAQ items, blog clustering (informational→commercial→transactional intent funnel), seasonal calendar...",
+      "version": "1.0.0",
+      "token_cost": "medium",
+      "requires": [
+        "construction-domain-rules"
+      ],
+      "compatible_with": [
+        "webapp"
+      ],
+      "tags": [
+        "content",
+        "strategy",
+        "construction",
+        "gw",
+        "marketing"
+      ]
+    },
+    {
+      "name": "liquid-glass-design-system",
+      "category": "webapp",
+      "path": "library/skills/webapp/liquid-glass-design-system/SKILL.md",
+      "description": "Design system iOS Springboard estetyka NA DESKTOPIE (1280-1920px laptop biurowy primary, mobile responsive fallback) — glassmorphism + blur + dual-mode tokens (desktop blur 6/12/20 / mobile blur 8/16/24 reversal vs ),...",
+      "version": "2.0.0",
+      "model": "opus",
+      "token_cost": "high",
+      "compatible_with": [
+        "webapp"
+      ],
+      "tags": [
+        "design-system",
+        "ios",
+        "springboard",
+        "liquid-glass",
+        "desktop-first",
+        "glassmorphism",
+        "apple-hig",
+        "tailwind",
+        "shadcn-pattern",
+        "kontrakt-C",
+        "rebuild"
+      ]
+    },
+    {
+      "name": "pdf-document-templates",
+      "category": "webapp",
+      "path": "library/skills/webapp/pdf-document-templates/SKILL.md",
+      "description": "Szablony PDF (oferta robocizny + wykaz drewna) dla aplikacji ofertującej PL używające @react-pdf/renderer.",
+      "version": "1.0.0",
+      "token_cost": "medium",
+      "requires": [
+        "webapp-standards",
+        "quotation-pl-rules",
+        "roofing-domain-rules",
+        "data-protection-rodo-pl"
+      ],
+      "compatible_with": [
+        "webapp"
+      ],
+      "tags": [
+        "pdf",
+        "react-pdf",
+        "poland",
+        "templates",
+        "audit-trail"
+      ]
+    },
+    {
+      "name": "portfolio-design-patterns",
+      "category": "webapp",
+      "path": "library/skills/webapp/portfolio-design-patterns/SKILL.md",
+      "description": "Wzorce nowoczesnego portfolio 2026 — 8 patterns: Hero+Video, Sticky-Nav, Scroll-Reveal, Mikrointerakcje, Case-Study layout, CTA-dual (freelance+job), Dark-mode, Fluid-typography.",
+      "version": "1.0.0",
+      "token_cost": "medium",
+      "requires": [
+        "responsive-web-standards-2026"
+      ],
+      "compatible_with": [
+        "webapp"
+      ],
+      "tags": [
+        "portfolio",
+        "design",
+        "web-patterns",
+        "nextjs",
+        "tailwind",
+        "framer-motion",
+        "2026"
+      ]
+    },
+    {
+      "name": "responsive-web-standards-2026",
+      "category": "webapp",
+      "path": "library/skills/webapp/responsive-web-standards-2026/SKILL.md",
+      "description": "Foundation web standards 2026 — HTML5 semantic, mobile-first CSS (320/768/1024/1440 breakpoints), WCAG 2.2 AA (20+ items), Core Web Vitals 2026 (LCP <2.5s, INP <200ms NEW, CLS <0.1), Lighthouse 95+ checklist, dark mod...",
+      "version": "1.0.0",
+      "token_cost": "medium",
+      "compatible_with": [
+        "webapp"
+      ],
+      "tags": [
+        "web",
+        "responsive",
+        "accessibility",
+        "wcag",
+        "cwv",
+        "performance",
+        "standards-2026"
+      ]
+    },
+    {
+      "name": "single-user-auth-pl",
+      "category": "webapp",
+      "path": "library/skills/webapp/single-user-auth-pl/SKILL.md",
+      "description": "Minimalistyczny auth jednoosobowy dla webapp PL — iron-session 8 + bcryptjs cost 12+ + zxcvbn min score 3 + opt-in TOTP feature flag (TOTP_REQUIRED=false default), bez RBAC, RODO-aware logging (pino-redact PII), audit...",
+      "version": "2.0.0",
+      "model": "sonnet",
+      "token_cost": "medium",
+      "requires": [
+        "webapp-security-hardening",
+        "data-protection-rodo-pl"
+      ],
+      "compatible_with": [
+        "webapp"
+      ],
+      "tags": [
+        "auth",
+        "iron-session",
+        "bcrypt",
+        "zxcvbn",
+        "totp",
+        "single-user",
+        "rodo",
+        "audit-log",
+        "rebuild"
+      ]
+    },
+    {
+      "name": "static-site-premium-patterns",
+      "category": "webapp",
+      "path": "library/skills/webapp/static-site-premium-patterns/SKILL.md",
+      "description": "Wzorce budowy premium-minimal strony-wizytówki/portfolio w CZYSTYM vanilla HTML/CSS/JS (jeden index.html, zero frameworka, zero build-stepu) — design-tokens (CSS variables), sekcja-jako-krok-procesu, sticky-nav z back...",
+      "version": "1.0.0",
+      "token_cost": "medium",
+      "requires": [
+        "responsive-web-standards-2026"
+      ],
+      "compatible_with": [
+        "webapp"
+      ],
+      "tags": [
+        "static-site",
+        "vanilla",
+        "html",
+        "css",
+        "javascript",
+        "portfolio",
+        "premium-minimal",
+        "github-pages",
+        "no-framework",
+        "2026"
+      ]
+    },
+    {
+      "name": "video-web-integration",
+      "category": "webapp",
+      "path": "library/skills/webapp/video-web-integration/SKILL.md",
+      "description": "HTML5 video best practices dla web — multi-source (MP4 H.264 + WebM VP9), poster zawsze, lazy load przez IntersectionObserver, autoplay-mute restrictions, VTT captions (a11y), preload strategies, FFmpeg presets (optym...",
+      "version": "1.0.0",
+      "token_cost": "medium",
+      "requires": [
+        "responsive-web-standards-2026"
+      ],
+      "compatible_with": [
+        "webapp"
+      ],
+      "tags": [
+        "video",
+        "html5",
+        "lazy-loading",
+        "ffmpeg",
+        "a11y",
+        "captions",
+        "webm",
+        "mp4"
+      ]
+    },
+    {
+      "name": "webapp-backup-dr",
+      "category": "webapp",
+      "path": "library/skills/webapp/webapp-backup-dr/SKILL.md",
+      "description": "Templates konkretne — pg_dump cron sidecar Docker + rclone Backblaze B2 sync + retention rotation 7d daily/4w weekly/12m monthly + monthly automated restore drill skrypt z validation (rowcount diff <1%, schema diff = 0).",
+      "version": "1.0.0",
+      "model": "sonnet",
+      "token_cost": "medium",
+      "requires": [
+        "webapp-docker-templates"
+      ],
+      "compatible_with": [
+        "webapp"
+      ],
+      "tags": [
+        "backup",
+        "dr",
+        "pg-dump",
+        "backblaze-b2",
+        "rclone",
+        "retention",
+        "restore-drill",
+        "audit-ready",
+        "zasada-15-pkt-8"
+      ]
+    },
+    {
+      "name": "webapp-calculator-patterns",
+      "category": "webapp",
+      "path": "library/skills/webapp/webapp-calculator-patterns/SKILL.md",
+      "description": "Calculator UX patterns webapp — multistep wizard (3-5 krokow, save progress localStorage), zod walidacje (inline errors), PDF export (react-pdf client/server), share-link (URLSearchParams+LZString), lead-gate OPCJONAL...",
+      "version": "1.0.0",
+      "token_cost": "medium",
+      "requires": [
+        "responsive-web-standards-2026"
+      ],
+      "compatible_with": [
+        "webapp"
+      ],
+      "tags": [
+        "calculator",
+        "webapp",
+        "ux",
+        "forms",
+        "multistep",
+        "pdf",
+        "leadgen"
+      ]
+    },
+    {
+      "name": "webapp-ci-cd-workflows",
+      "category": "webapp",
+      "path": "library/skills/webapp/webapp-ci-cd-workflows/SKILL.md",
+      "description": "Templates konkretne 3 GitHub Actions workflows (ci.yml + cd.yml + security.yml) dla webapp produkcyjnych Next.js + pnpm + Docker + ghcr.io + self-hosted runner.",
+      "version": "1.0.0",
+      "model": "sonnet",
+      "token_cost": "medium",
+      "requires": [
+        "webapp-docker-templates"
+      ],
+      "compatible_with": [
+        "webapp"
+      ],
+      "tags": [
+        "ci-cd",
+        "github-actions",
+        "ghcr",
+        "trivy",
+        "codeql",
+        "dependabot",
+        "sbom",
+        "zap",
+        "audit-ready",
+        "zasada-15-pkt-4-11-12"
+      ]
+    },
+    {
+      "name": "webapp-cicd-templates",
+      "category": "webapp",
+      "path": "library/skills/webapp/webapp-cicd-templates/SKILL.md",
+      "description": "Gdy użytkownik pracuje nad CI/CD, GitHub Actions, pre-commit hooks lub deployment automation w projekcie webapp.",
+      "version": "1.0",
+      "token_cost": "medium",
+      "requires": [
+        "webapp-standards"
+      ],
+      "compatible_with": [
+        "webapp"
+      ],
+      "tags": [
+        "ci-cd",
+        "github-actions",
+        "husky",
+        "commitlint",
+        "dependabot",
+        "coolify",
+        "pnpm"
+      ]
+    },
+    {
+      "name": "webapp-docker-templates",
+      "category": "webapp",
+      "path": "library/skills/webapp/webapp-docker-templates/SKILL.md",
+      "description": "Templates konkretne (NIE placeholdery) — Dockerfile multi-stage + docker-compose dev/prod + entrypoint.sh + .dockerignore + healthcheck endpoints.",
+      "version": "1.0.0",
+      "model": "sonnet",
+      "token_cost": "medium",
+      "compatible_with": [
+        "webapp"
+      ],
+      "tags": [
+        "docker",
+        "compose",
+        "iac",
+        "audit-ready",
+        "healthcheck",
+        "zasada-15-pkt-1-3"
+      ]
+    },
+    {
+      "name": "webapp-observability-stack",
+      "category": "webapp",
+      "path": "library/skills/webapp/webapp-observability-stack/SKILL.md",
+      "description": "Templates konkretne — pino JSON structured logging z PII redaction + Sentry SaaS integration (@sentry/nextjs) + healthcheck endpoints `/api/health` `/api/ready` `/api/version` + UptimeRobot setup procedure + audit-tra...",
+      "version": "1.0.0",
+      "model": "sonnet",
+      "token_cost": "medium",
+      "requires": [
+        "webapp-docker-templates"
+      ],
+      "compatible_with": [
+        "webapp"
+      ],
+      "tags": [
+        "observability",
+        "logging",
+        "pino",
+        "sentry",
+        "healthcheck",
+        "uptime",
+        "audit-trail",
+        "audit-ready",
+        "zasada-15-pkt-5-6-7"
+      ]
+    },
+    {
+      "name": "webapp-reverse-proxy-tls",
+      "category": "webapp",
+      "path": "library/skills/webapp/webapp-reverse-proxy-tls/SKILL.md",
+      "description": "Templates konkretne — Caddy v2 Caddyfile + auto-TLS Let's Encrypt + security headers (CSP/HSTS/X-Frame-Options/X-Content-Type-Options/Referrer-Policy) + rate limiting (Caddy IP-based + Hono middleware).",
+      "version": "1.0.0",
+      "model": "sonnet",
+      "token_cost": "medium",
+      "requires": [
+        "webapp-docker-templates"
+      ],
+      "compatible_with": [
+        "webapp"
+      ],
+      "tags": [
+        "reverse-proxy",
+        "caddy",
+        "tls",
+        "lets-encrypt",
+        "csp",
+        "hsts",
+        "security-headers",
+        "rate-limiting",
+        "audit-ready",
+        "zasada-15-pkt-9-10"
+      ]
+    },
+    {
+      "name": "webapp-security-hardening",
+      "category": "webapp",
+      "path": "library/skills/webapp/webapp-security-hardening/SKILL.md",
+      "description": "Użyj gdy projekt webapp ma lukę w: HTTPS (brak SSL), security headers, rate-limiting, secrets management.",
+      "version": "1.0",
+      "token_cost": "low",
+      "compatible_with": [
+        "webapp"
+      ],
+      "tags": [
+        "security",
+        "https",
+        "headers",
+        "rate-limit",
+        "secrets",
+        "retrofit",
+        "webapp"
+      ]
+    },
+    {
+      "name": "webapp-standards",
+      "category": "webapp",
+      "path": "library/skills/webapp/webapp-standards/SKILL.md",
+      "description": "Kompletne standardy budowy aplikacji webowych operatora — stos, architektura, TypeScript, testy, security, CI/CD, Docker, baza, git."
+    },
+    {
+      "name": "webapp-threat-model-template",
+      "category": "webapp",
+      "path": "library/skills/webapp/webapp-threat-model-template/SKILL.md",
+      "description": "Templates konkretne (NIE placeholdery TODO) — 4 ADR-y (Stack/IaC/Auth+TOTP/PDF) + threat-model.md STRIDE per komponent (app/db/proxy/backup/ci-cd) + SECURITY.md konkretny (vuln disclosure + GPG + supported versions +...",
+      "version": "1.0.0",
+      "model": "opus",
+      "token_cost": "high",
+      "requires": [
+        "webapp-docker-templates",
+        "webapp-ci-cd-workflows",
+        "webapp-observability-stack",
+        "webapp-backup-dr",
+        "webapp-reverse-proxy-tls"
+      ],
+      "compatible_with": [
+        "webapp"
+      ],
+      "tags": [
+        "threat-model",
+        "stride",
+        "adr",
+        "security-md",
+        "runbook",
+        "incident-response",
+        "changelog",
+        "audit-ready",
+        "zasada-15-pkt-13-14-15-16-17-18"
+      ]
+    }
+  ]
+}

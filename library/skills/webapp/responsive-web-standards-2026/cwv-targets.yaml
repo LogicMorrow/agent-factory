@@ -1,0 +1,115 @@
+_comment: "Core Web Vitals 2026 thresholds + measurement tools. LCP/INP/CLS per device class. INP zastapil FID od marca 2024."
+
+cwv_2026:
+  lcp:
+    name: "Largest Contentful Paint"
+    good: "<= 2.5s"
+    needs_improvement: "2.5s - 4.0s"
+    poor: "> 4.0s"
+    measurement:
+      lab:
+        - "Lighthouse (Performance tab)"
+        - "PageSpeed Insights (manual)"
+      field:
+        - "web-vitals.js v3+ → analytics endpoint"
+        - "Google Search Console CWV report"
+        - "CrUX (Chrome User Experience Report)"
+      devtools: "Performance tab → Web Vitals lane → LCP marker"
+    common_fixes:
+      - "preload LCP image: <link rel='preload' fetchpriority='high' as='image' href='...'>"
+      - "next/image priority prop dla hero image"
+      - "server response time < 600ms (TTFB target)"
+      - "Remove render-blocking resources above fold"
+      - "Preconnect to critical origins"
+    lighthouse_gate: 2500  # ms — fail CI when above
+
+  inp:
+    name: "Interaction to Next Paint"
+    note: "NEW od marca 2024 — zastapil FID (First Input Delay). FID deprecated."
+    good: "<= 200ms"
+    needs_improvement: "200ms - 500ms"
+    poor: "> 500ms"
+    measurement:
+      lab:
+        - "Chrome DevTools Performance tab (Total Blocking Time jako proxy)"
+        - "Lighthouse (TBT koreluje z INP)"
+      field:
+        - "web-vitals.js v3+ (INP only available field, not lab)"
+        - "Google Search Console CWV report"
+        - "PerformanceObserver API: type 'event'"
+      devtools: "Performance tab → Interactions lane → Long Animation Frames"
+    common_fixes:
+      - "Dynamic imports (code splitting) dla heavy components"
+      - "Partytown: przenies third-party scripts (GA/GTM) do web workers"
+      - "useTransition / useDeferredValue React 18+ dla non-urgent updates"
+      - "Debounce expensive event handlers (scroll, resize, input)"
+      - "Avoid long tasks >50ms on main thread"
+    lighthouse_gate: null  # INP nie jest w lab Lighthouse — uzyj TBT <200ms jako proxy
+
+  cls:
+    name: "Cumulative Layout Shift"
+    good: "<= 0.1"
+    needs_improvement: "0.1 - 0.25"
+    poor: "> 0.25"
+    measurement:
+      lab:
+        - "Lighthouse Performance tab"
+        - "PageSpeed Insights"
+      field:
+        - "web-vitals.js v3+"
+        - "Google Search Console CWV report"
+      devtools: "Performance tab → Layout Shift lane (czerwone bloki)"
+    common_fixes:
+      - "width + height attributes na kazdym <img> i <video>"
+      - "aspect-ratio CSS zamiast padding-top hack"
+      - "Reserve space dla dynamic content (ads, banners, embeds)"
+      - "font-display: swap + font metrics override (size-adjust, ascent-override)"
+      - "Avoid inserting content above existing content on load"
+    lighthouse_gate: 0.1
+
+device_classes:
+  mobile_4g:
+    note: "Primary target — 75th percentile Core Web Vitals report (Google ranking factor)"
+    throttling: "4G (10Mbps down, 0.75Mbps up, RTT 40ms)"
+    cpu: "4x slowdown (simulated mid-range Android)"
+  mobile_3g:
+    note: "Stretch goal — degraded experience acceptable (nie blokuj rankingu)"
+    throttling: "3G (1.5Mbps down, 0.75Mbps up, RTT 150ms)"
+  desktop:
+    note: "Secondary target — zazwyczaj latwy do osiagniecia"
+    throttling: "No throttling (lub Cable)"
+
+measurement_strategy:
+  lab_purpose: "Debug i weryfikacja zmian. Deterministyczne, powtarzalne."
+  field_purpose: "Prawdziwe doswiadczenie uzytkownikow. Uwzglednia siec, urzadzenie, geografe."
+  hybrid_rule: "Lab do debugowania + field dla rzeczywistego wyniku CWV w Search Console"
+
+  lighthouse_ci_config:
+    performance: 95
+    accessibility: 95
+    best_practices: 90
+    seo: 95
+    fail_on_error: true
+    url_patterns:
+      - "/"
+      - "/blog"
+      - "/kontakt"
+    note: "Uruchamiaj na staging przed kazdym merge do main"
+
+  web_vitals_js_snippet: |
+    // Minimal setup — wklej do app/layout.tsx lub _app.tsx
+    import { onCLS, onINP, onLCP } from 'web-vitals';
+    function sendToAnalytics({ name, value, id }: Metric) {
+      // Wyslij do GA4, Plausible, custom endpoint
+    }
+    onCLS(sendToAnalytics);
+    onINP(sendToAnalytics);
+    onLCP(sendToAnalytics);
+
+alert_thresholds:
+  note: "Progi alertow dla Lighthouse CI (fail gate)"
+  lcp_ms: 2500
+  inp_tbt_proxy_ms: 200  # TBT proxy dla INP w lab
+  cls_score: 0.1
+  lighthouse_performance: 95
+  lighthouse_accessibility: 95

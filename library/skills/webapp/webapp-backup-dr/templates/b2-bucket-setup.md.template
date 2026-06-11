@@ -1,0 +1,99 @@
+# B2 Bucket Setup — {{PROJECT_NAME}}
+# webapp-backup-dr v1.0.0 — manual procedura one-time
+# Czas: ~15 min
+
+## Krok 1 — Rejestracja Backblaze (jeśli pierwsze użycie)
+
+1. Idź na https://www.backblaze.com/b2/sign-up.html
+2. Utwórz konto (email + hasło strong). **Zapamiętaj te dane — to konto master.**
+3. Zaloguj się do B2 Console: https://secure.backblaze.com/b2_buckets.htm
+
+## Krok 2 — Utwórz bucket
+
+1. Kliknij **Create a Bucket**
+2. Wypełnij:
+   - **Bucket Name:** `{{B2_BUCKET}}` (musi być globalnie unikalny, lowercase, tylko alfanumeryczne i `-`)
+   - **Files in Bucket:** `Private` (NIE Public)
+   - **Default Encryption:** `Enable` (SSE-B2, server-side encryption)
+   - **Object Lock:** `Enable` — opcjonalnie dla immutable backups (wymaga feature włączonej w konsoli)
+3. Kliknij **Create a Bucket**
+4. Zanotuj **Endpoint** (np. `s3.us-west-004.backblazeb2.com`) — potrzebny dla S3-compatible API
+
+## Krok 3 — Lifecycle rules (retention B2-side)
+
+W ustawieniach bucket → **Lifecycle Settings**:
+
+| Rule | Wartość |
+|---|---|
+| Keep only the last version of the file | Po 365 dniach (backup ma własną retention, B2 jako failsafe) |
+| Keep prior versions for | 90 dni (trzymaj stare wersje 90 dni zanim B2 je skasuje fizycznie) |
+
+> Uwaga: lifecycle rules B2 to DODATKOWE zabezpieczenie. Własna retention w `retention-rotation.sh` jest primary.
+
+## Krok 4 — Utwórz Application Key (NIE używaj Master Key)
+
+1. Idź do **App Keys** → **Add a New Application Key**
+2. Wypełnij:
+   - **Key Name:** `{{PROJECT_NAME}}-backup-key`
+   - **Allow access to Bucket(s):** `{{B2_BUCKET}}` (scope do jednego bucket!)
+   - **Type of Access:** `Read and Write`
+   - **File Name Prefix:** zostaw puste (lub `{{PROJECT_NAME}}-` dla dodatkowego scope)
+   - **Duration:** bez expirations (lub 1 rok + rotacja w kalendarzu)
+3. Kliknij **Create New Key**
+4. **ZAPISZ natychmiast:**
+   - `applicationKeyId` → to `B2_APPLICATION_KEY_ID`
+   - `applicationKey` → to `B2_APPLICATION_KEY`
+   **B2 pokazuje key TYLKO RAZ. Nie zamykaj okna przed zapisaniem.**
+
+## Krok 5 — Zapisz credentials bezpiecznie
+
+Credentials NIGDY nie lądują w git. Możliwe miejsca:
+
+### Opcja A — .env.backup (preferowana dla Docker)
+```bash
+# .env.backup — NIE commitować, dodać do .gitignore
+B2_APPLICATION_KEY_ID=<wartość z kroku 4>
+B2_APPLICATION_KEY=<wartość z kroku 4>
+B2_BUCKET={{B2_BUCKET}}
+```
+
+Dodaj do `.gitignore`:
+```
+.env.backup
+.env*.local
+```
+
+### Opcja B — Docker secrets (dla swarm / produkcja hardened)
+```bash
+printf '<B2_APPLICATION_KEY_ID>' | docker secret create b2_key_id -
+printf '<B2_APPLICATION_KEY>'    | docker secret create b2_key -
+```
+
+### Opcja C — Password manager (dla operatora single-user)
+Zapisz w 1Password / Bitwarden jako secure note z polami `key_id` + `key` + `bucket`.
+
+## Krok 6 — Master key offline
+
+**Klucz szyfrowania Backblaze (SSE-B2) jest zarządzany przez B2.** Dla dodatkowej warstwy:
+1. Wyeksportuj lub zanotuj Master Account ID (z profilu B2).
+2. Trzymaj w bezpiecznym miejscu offline (fizyczne, poza VPS).
+3. Rotacja application key: Krok 4 powtórz raz na rok lub po incydencie.
+
+## Krok 7 — Weryfikacja połączenia
+
+Po wdrożeniu backup sidecar na VPS:
+
+```bash
+# Weryfikacja połączenia z B2
+docker compose exec backup rclone lsd --config=/etc/rclone.conf b2remote:
+
+# Powinien wyświetlić:
+#   -1 2026-05-29 03:00:00        -1 {{B2_BUCKET}}
+
+# Weryfikacja uploadu testowego
+docker compose exec backup rclone copy /etc/hostname \
+  --config=/etc/rclone.conf b2remote:{{B2_BUCKET}}/test/
+docker compose exec backup rclone lsf \
+  --config=/etc/rclone.conf b2remote:{{B2_BUCKET}}/test/
+# → hostname (skasuj potem: rclone delete ...)
+```

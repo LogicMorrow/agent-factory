@@ -1,0 +1,90 @@
+# Observability ENV Variables — {{PROJECT_NAME}}
+
+Wszystkie zmienne środowiskowe wymagane przez webapp-observability-stack.
+Skopiuj do `.env.example` projektu (NIE do `.env` commitowanego do git).
+
+---
+
+## Sentry
+
+| Zmienna | Wymagana | Opis | Przykład |
+|---|---|---|---|
+| `SENTRY_DSN` | Tak (prod) | Data Source Name z Sentry SaaS dashboard → Project → Settings → Client Keys | `https://abc123def456@o123456.ingest.sentry.io/789012` |
+| `NEXT_PUBLIC_SENTRY_DSN` | Tak (prod) | Taka sama wartość co `SENTRY_DSN` — prefix NEXT_PUBLIC wymagany przez przeglądarkę | `https://abc123def456@o123456.ingest.sentry.io/789012` |
+| `SENTRY_AUTH_TOKEN` | Tylko CI | SECRET — tylko w GitHub Secrets, nigdy w plikach. Potrzebny do uploadu source maps w CI | `sntrys_...` (Sentry → User Settings → Auth Tokens) |
+| `SENTRY_ORG` | Tylko CI | Slug organizacji Sentry (małe litery, kebab) | `logicmorrow` |
+| `SENTRY_PROJECT` | Tylko CI | Slug projektu Sentry | `demo-app` |
+
+**Bezpieczeństwo:**
+- `SENTRY_DSN` — public-safe (można umieścić w `.env.example`)
+- `NEXT_PUBLIC_SENTRY_DSN` — public-safe (wysyłany do przeglądarki)
+- `SENTRY_AUTH_TOKEN` — SEKRET — tylko `gh secret set SENTRY_AUTH_TOKEN`
+
+---
+
+## Pino Logging
+
+| Zmienna | Wymagana | Opis | Przykład |
+|---|---|---|---|
+| `LOG_LEVEL` | Nie | Poziom logowania (debug/info/warn/error). Default: `info` | `info` |
+
+**Poziomy logowania:**
+- `debug` — szczegółowe logi deweloperskie (TYLKO dev — nie używać na prod)
+- `info` — normalny ruch produkcyjny (default)
+- `warn` — ostrzeżenia, nieoczekiwane sytuacje (dla niskiego ruchu)
+- `error` — tylko błędy (przy bardzo niskim ruchu z Sentry jako backup)
+
+---
+
+## Build metadata
+
+| Zmienna | Wymagana | Opis | Przykład |
+|---|---|---|---|
+| `NEXT_PUBLIC_APP_VERSION` | Tak (prod) | Semver z `package.json`. Wstrzykiwany w CI. | `1.0.0` |
+| `BUILD_SHA` | Tak (CI) | Git SHA z `${{ github.sha }}` w CI workflow | `a1b2c3d4` |
+| `BUILD_TIME` | Nie | ISO timestamp buildu. Wstrzykiwany w CI. | `2026-05-29T10:00:00Z` |
+
+**Wstrzyknięcie w CI (`ci.yml`):**
+```yaml
+- name: Build Docker image
+  env:
+    NEXT_PUBLIC_APP_VERSION: ${{ github.ref_name }}
+    BUILD_SHA: ${{ github.sha }}
+    BUILD_TIME: ${{ github.event.head_commit.timestamp }}
+```
+
+---
+
+## UptimeRobot (opcjonalne, dla programmatic setup)
+
+| Zmienna | Wymagana | Opis | Przykład |
+|---|---|---|---|
+| `UPTIMEROBOT_API_KEY` | Nie | Main API Key z UptimeRobot → My Settings → API Settings | `ur12345-...` |
+
+Używany opcjonalnie w CD workflow do pause/resume monitora podczas deployu.
+
+---
+
+## Gotowy blok dla `.env.example`
+
+```bash
+# ─── Observability ───────────────────────────────────────────────────────────
+
+# Sentry error tracking (public-safe DSN)
+SENTRY_DSN=https://YOUR_KEY@o0.ingest.sentry.io/YOUR_PROJECT_ID
+NEXT_PUBLIC_SENTRY_DSN=https://YOUR_KEY@o0.ingest.sentry.io/YOUR_PROJECT_ID
+# SENTRY_AUTH_TOKEN — TYLKO w GitHub Secrets, nie tutaj!
+SENTRY_ORG={{PROJECT_NAME}}
+SENTRY_PROJECT={{PROJECT_NAME}}
+
+# Pino structured logging
+LOG_LEVEL=info
+
+# Build metadata (wstrzykiwane w CI, nie ustawiaj ręcznie)
+NEXT_PUBLIC_APP_VERSION=0.0.0
+BUILD_SHA=local
+BUILD_TIME=
+
+# UptimeRobot (opcjonalnie)
+# UPTIMEROBOT_API_KEY=ur...
+```

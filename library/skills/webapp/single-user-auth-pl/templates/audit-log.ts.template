@@ -1,0 +1,200 @@
+/**
+ * RODO-aware Audit Logger — pino-redact PII
+ * single-user-auth-pl v2.0.0
+ *
+ * Wymagane deps:
+ *   pnpm add pino pino-pretty
+ *
+ * Schemat audit_log w DB: zob. audit-log-schema.md (Prisma model AuditLog)
+ *
+ * Zasady:
+ *   - IP → SHA-256 hash (pierwsze 16 hex znaków) — IP to dane osobowe RODO
+ *   - user-agent → SHA-256 hash — fingerprinting ryzyko
+ *   - metadata: JSONb — TYLKO dane nieosobowe (UUID, hashe, flagi)
+ *   - Nie wkładaj do metadata: imion, nazwisk, telefonów, adresów, kwot ofert
+ *   - Tabela append-only (RULE no_delete + no_update w DB)
+ */
+
+import pino from "pino";
+import { createHash } from "crypto";
+import { db } from "@/lib/db";
+
+// ─── Logger pino z PII redaction ─────────────────────────────────────────
+
+const logger = pino({
+  level: process.env.LOG_LEVEL ?? "info",
+  redact: {
+    /**
+     * Ścieżki do automatycznego maskowania przez pino-redact.
+     * Wartości zastąpione przez "[Redacted]".
+     * Lista powinna obejmować wszystkie możliwe ścieżki PII w logach.
+     */
+    paths: [
+      "ip",
+      "ipAddress",
+      "email",
+      "phone",
+      "address",
+      "clientName",
+      "client_name",
+      "name",
+      "firstName",
+      "lastName",
+      "*.email",
+      "*.phone",
+      "*.address",
+      "req.headers.authorization",
+      "req.headers.cookie",
+    ],
+    censor: "[Redacted]",
+  },
+  ...(process.env.NODE_ENV !== "production"
+    ? { transport: { target: "pino-pretty", options: { colorize: true } } }
+    : {}),
+});
+
+// ─── Typy audit log ───────────────────────────────────────────────────────
+
+export type AuditAction =
+  // Auth
+  | "login.success"
+  | "login.fail"
+  | "login.rate_limited"
+  | "login.totp_required"
+  | "login.totp_fail"
+  | "logout"
+  // Sesja
+  | "session.expired"
+  // Oferty (dostosuj do domeny projektu)
+  | "offer.create"
+  | "offer.update"
+  | "offer.delete"
+  | "offer.view"
+  // PDF
+  | "pdf.download"
+  // RODO
+  | "rodo.export"
+  | "rodo.delete"
+  // Settings
+  | "settings.password_changed"
+  | "settings.totp_setup_initiated"
+  | "settings.totp_enabled"
+  | "settings.totp_disabled"
+  | "settings.update";
+
+export type ResourceType =
+  | "offer"
+  | "wood_list"
+  | "client"
+  | "settings"
+  | "pdf"
+  | null;
+
+export interface AuditLogEntry {
+  /** Typ akcji — z listy AuditAction powyżej */
+  action: AuditAction;
+  /** ID użytkownika z DB (nie email!) — undefined dla login.fail przed identyfikacją */
+  userId?: string;
+  /** IP adres — zostanie zahashowany przed zapisem */
+  ipAddress?: string;
+  /** User-Agent — zostanie zahashowany przed zapisem */
+  userAgent?: string;
+  /** Typ zasobu (oferta, klient, etc.) */
+  resourceType?: ResourceType;
+  /** UUID zasobu — NIE treść zasobu, tylko ID */
+  resourceId?: string;
+  /**
+   * Dodatkowy kontekst — TYLKO dane nieosobowe.
+   * Dozwolone: UUID, hashe, flagi boolean, changed_fields[], offer_type.
+   * ZABRONIONE: imiona, nazwiska, telefony, adresy, kwoty.
+   */
+  metadata?: Record<string, unknown>;
+}
+
+// ─── Helper: hash PII ─────────────────────────────────────────────────────
+
+/**
+ * SHA-256 pierwsze 16 hex znaków — identyfikuje unikalnie (dla korelacji logów)
+ * ale nie ujawnia wartości oryginalnej (zgodnie z RODO art. 89 pseudonimizacja).
+ */
+function hashPII(value: string): string {
+  if (!value) return "empty";
+  return createHash("sha256").update(value).digest("hex").slice(0, 16);
+}
+
+// ─── Zapis audit log ──────────────────────────────────────────────────────
+
+/**
+ * Zapisz wpis do tabeli audit_log w DB.
+ * Nigdy nie rzuca wyjątku — błąd logu nie może blokować operacji biznesowej.
+ * Błąd zapisu jest logowany przez pino na level "error".
+ */
+export async function writeAuditLog(entry: AuditLogEntry): Promise<void> {
+  const ts = new Date;
+  const ipHash = entry.ipAddress ? hashPII(entry.ipAddress) : null;
+  const userAgentHash = entry.userAgent ? hashPII(entry.userAgent) : null;
+
+  try {
+    await db.auditLog.create({
+      data: {
+        ts,
+        userId: entry.userId ?? null,
+        action: entry.action,
+        resourceType: entry.resourceType ?? null,
+        resourceId: entry.resourceId ?? null,
+        ipHash,
+        userAgentHash,
+        metadata: entry.metadata ?? {},
+      },
+    });
+
+    // Structured log (bez PII — pino-redact backup layer)
+    logger.info({
+      audit: true,
+      action: entry.action,
+      userId: entry.userId,
+      resourceType: entry.resourceType,
+      resourceId: entry.resourceId,
+      ipHash,
+    });
+  } catch (err) {
+    // Audit log failure = CRITICAL — loguj ale nie blokuj operacji
+    logger.error({
+      audit_write_fail: true,
+      action: entry.action,
+      error: err instanceof Error ? err.message : String(err),
+    });
+    // Opcjonalnie: Sentry.captureException(err, { tags: { audit_log_fail: true } });
+  }
+}
+
+// ─── Audit log — lista akcji v1 (reference) ──────────────────────────────
+
+/**
+ * Kompletna lista akcji i co trafić w metadata.
+ * Używaj writeAuditLog z odpowiednim `action` z tej listy.
+ *
+ * action                          resourceType  metadata (NIE PII)
+ * ─────────────────────────────   ───────────   ──────────────────────────────
+ * login.success                   null          {}
+ * login.fail                      null          { email_hash: "abc123" }
+ * login.rate_limited              null          { email_hash: "abc123" }
+ * login.totp_required             null          {}
+ * login.totp_fail                 null          {}
+ * logout                          null          {}
+ * session.expired                 null          { session_age_hours: 8 }
+ * offer.create                    "offer"       { offerId, clientIdHash }
+ * offer.update                    "offer"       { offerId, changedFields: ["price"] }
+ * offer.delete                    "offer"       { offerId }
+ * offer.view                      "offer"       { offerId }
+ * pdf.download                    "pdf"         { offerId, pdfType: "summary" | "detailed" }
+ * rodo.export                     "client"      { clientIdHash, requestedBy: userId }
+ * rodo.delete                     "client"      { clientIdHash, anonymizedFields: [] }
+ * settings.password_changed       "settings"    {}
+ * settings.totp_enabled           "settings"    {}
+ * settings.totp_disabled          "settings"    {}
+ */
+
+// ─── Eksport loggera dla innych modułów ──────────────────────────────────
+
+export { logger };

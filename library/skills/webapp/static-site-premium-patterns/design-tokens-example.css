@@ -1,0 +1,114 @@
+/* design-tokens-example.css — kompletny zestaw startowy dla premium-minimal vanilla portfolio.
+   Kopiuj do <style> w index.html lub do osobnego style.css. Zmień wartości pod swój brand.
+   Wartości poniżej = przykład (paleta zielona, fonty Syne/DM Sans). NIE są wiążące dla innych projektów. */
+
+:root {
+  /* ---- Kolor ---- */
+  --bg: #F9F8F6;            /* tło strony — ciepła biel */
+  --surface: #FFFFFF;       /* tło kart i sekcji */
+  --ink: #111110;           /* główny tekst */
+  --ink-secondary: #5A5A57; /* tekst drugorzędny */
+  --ink-tertiary: #9A9A96;  /* labele, tekst pomocniczy */
+  --accent: #1A3A2A;        /* akcent — głęboka zieleń */
+  --accent-light: #2D5A40;  /* akcent hover */
+  --accent-muted: #E8EDE9;  /* tło tagów i ikon */
+  --border: #E4E3DF;        /* obramowania kart */
+  --border-strong: #C8C7C2; /* mocniejsze obramowania */
+
+  /* ---- Typografia ---- */
+  --font-display: 'Syne', sans-serif;
+  --font-body: 'DM Sans', system-ui, -apple-system, sans-serif;
+
+  /* ---- Ruch ---- */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* ---- Rytm / kształt ---- */
+  --section-pad-y: 7rem;
+  --section-pad-x: 3rem;
+  --radius-card: 1.125rem;   /* 1rem–1.25rem */
+  --radius-icon: 10px;
+  --radius-pill: 100px;
+  --maxw: 1120px;            /* maksymalna szerokość treści */
+}
+
+/* ---- Reset minimalny ---- */
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---- Typografia skala (fluid) ---- */
+h1 { font-family: var(--font-display); font-weight: 800; font-size: clamp(2.75rem, 6vw, 5rem); letter-spacing: -0.03em; line-height: 1.05; margin: 0; }
+h2 { font-family: var(--font-display); font-weight: 700; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -0.01em; margin: 0; }
+h3 { font-family: var(--font-display); font-weight: 600; font-size: 1.375rem; margin: 0; }
+.label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 600; }
+
+/* ---- Layout sekcji ---- */
+section { padding: var(--section-pad-y) var(--section-pad-x); }
+.container { max-width: var(--maxw); margin-inline: auto; }
+@media (max-width: 768px) {
+  :root { --section-pad-y: 4rem; --section-pad-x: 1.5rem; }
+}
+
+/* ---- Karty ---- */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 2rem;
+  transition: border-color .3s var(--ease-out), transform .3s var(--ease-out), box-shadow .3s var(--ease-out);
+}
+@media (hover: hover) {
+  .card:hover { border-color: var(--border-strong); transform: translateY(-2px); box-shadow: 0 8px 30px rgba(17,17,16,.06); }
+}
+
+/* ---- Przyciski ---- */
+.btn { display: inline-flex; align-items: center; gap: .5rem; border-radius: var(--radius-pill); padding: .85rem 1.6rem; font-weight: 600; text-decoration: none; transition: background .3s var(--ease-out), color .3s var(--ease-out); cursor: pointer; border: 1px solid transparent; }
+.btn-primary { background: var(--ink); color: var(--surface); }
+.btn-primary:hover { background: var(--accent); }
+.btn-secondary { background: transparent; color: var(--ink); border-color: var(--border-strong); }
+.btn-secondary:hover { border-color: var(--ink); }
+
+/* ---- Sekcja na ciemnym tle (wyróżnienie „serca") ---- */
+.section-dark { background: var(--ink); color: var(--surface); }
+.section-dark .label { color: var(--accent-light); }
+
+/* ---- Scroll-reveal ---- */
+.reveal { opacity: 0; transform: translateY(20px); transition: opacity .7s var(--ease-out), transform .7s var(--ease-out); }
+.reveal.is-visible { opacity: 1; transform: none; }
+
+/* ---- Sticky nav ---- */
+header.nav { position: sticky; top: 0; z-index: 50; transition: background .3s var(--ease-out), backdrop-filter .3s var(--ease-out); }
+header.nav.scrolled { backdrop-filter: blur(12px); background: color-mix(in srgb, var(--bg) 80%, transparent); border-bottom: 1px solid var(--border); }
+section[id] { scroll-margin-top: 5rem; }
+
+/* ---- Pulsująca kropka dostępności ---- */
+.dot { width: .5rem; height: .5rem; border-radius: 50%; background: var(--accent-light); display: inline-block; }
+@media (prefers-reduced-motion: no-preference) {
+  .dot { animation: pulse 2s var(--ease-in-out) infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
+}
+
+/* ---- Modal wideo ---- */
+dialog.video-modal { border: none; padding: 0; background: transparent; max-width: min(90vw, 960px); width: 100%; }
+dialog.video-modal::backdrop { background: rgba(17,17,16,.85); }
+.video-frame { aspect-ratio: 16/9; width: 100%; border-radius: var(--radius-card); overflow: hidden; }
+.video-frame iframe { width: 100%; height: 100%; border: 0; }
+
+/* ---- prefers-reduced-motion (twarda reguła) ---- */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  .reveal { opacity: 1; transform: none; }
+}
+
+/* ---- Focus widoczny (a11y) ---- */
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

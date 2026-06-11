@@ -1,0 +1,350 @@
+{
+  "_comment_usage": "Top 16+ PL katalogi biznesowe. Pole 'priority_for_construction' = HIGH/MED/LOW dla branzy GW (Generalny Wykonawca). Adapter pattern: dla innej branzy dodaj 'priority_for_{twoja_branza}' i zmien wartosci. last_verified = data ostatniej weryfikacji aktywnosci katalogu — sprawdz jesli >12 miesiecy.",
+  "_meta": {
+    "last_updated": "2026-05-11",
+    "total_catalogs": 18,
+    "high_priority_count": 8,
+    "categories": ["local_maps", "universal_business", "classified", "industry_real_estate", "industry_construction"],
+    "priority_legend": {
+      "HIGH": "Kluczowy dla branzy — submit ASAP, monitoruj aktywnie",
+      "MED": "Warto byc — submit w ciagu 30 dni, monitoruj kwartalnie",
+      "LOW": "Opcjonalny — submit jesli czas pozwala, monitoruj rocznie"
+    }
+  },
+  "catalogs": [
+    {
+      "name": "Google Business Profile (Google Maps PL)",
+      "url": "business.google.com",
+      "category": "local_maps",
+      "audience": "Lokalni klienci szukajacy uslug w okolicy — 'firma budowlana Warszawa', 'wykonawca budowlany w poblizy'",
+      "format_nap": {
+        "name": "required",
+        "address": "required",
+        "phone": "required",
+        "category": "required — wybierz 1 primary + max 9 secondary",
+        "hours": "required",
+        "website": "required",
+        "photos": "min 5 — fasada, realizacje, zespot",
+        "reviews": "aktywne zbieranie = boost rank",
+        "posts": "rekomendowane — min 1/miesiac"
+      },
+      "priority_for_construction": "HIGH",
+      "submission_method": "manual",
+      "cost": "free",
+      "last_verified": "2026-05-11",
+      "_comment": "DEEP w regional-seo-poland (E4) — tu tylko reference. Najwazniejszy local ranking factor PL. Bez GBP = brak w Local Pack (3-pak)."
+    },
+    {
+      "name": "OLX",
+      "url": "olx.pl",
+      "category": "classified",
+      "audience": "Szeroka baza lokalnych klientow B2C — od remontu lazienki do budowy domu. Najwyzszy organic traffic w PL classifieds.",
+      "format_nap": {
+        "name": "required — nazwa firmy lub osoba",
+        "phone": "required — widoczny po kliknieciu",
+        "location": "required — miasto/dzielnica",
+        "description": "required — max 9000 znakow",
+        "photos": "max 24 — realizacje kluczowe",
+        "category": "required — Uslagi / Budowa, remonty, montaz"
+      },
+      "priority_for_construction": "HIGH",
+      "submission_method": "manual",
+      "cost": "freemium — darmowe ogloszenia, platne podbicia (opcja)",
+      "last_verified": "2026-05-11",
+      "_comment": "#1 PL classifieds portal. Dla wielu branz lokalnych (budowlanka, remonty) OLX generuje wiecej zapytan niz GBP."
+    },
+    {
+      "name": "Allegro Lokalnie",
+      "url": "allegro.pl/lokalnie",
+      "category": "classified",
+      "audience": "Kupujacy i zlecajacy uslugu lokalnie — mocniejszy w produktach fizycznych, ale uslagi budowlane rosnace",
+      "format_nap": {
+        "name": "required",
+        "location": "required",
+        "description": "required",
+        "photos": "max 8",
+        "price": "wymagane lub 'do uzgodnienia'"
+      },
+      "priority_for_construction": "MED",
+      "submission_method": "manual",
+      "cost": "freemium",
+      "last_verified": "2026-05-11",
+      "_comment": "Allegro brand zaufania silny PL. Lokalnie = oglosenia uslugowe. Mniejszy ruch niz OLX dla uslug budowlanych, ale warto."
+    },
+    {
+      "name": "Aleo",
+      "url": "aleo.com",
+      "category": "universal_business",
+      "audience": "B2B — przetargi publiczne, firmy szukajace podwykonawcow, kooperacja branzy budowlanej",
+      "format_nap": {
+        "name": "required — pelna nazwa firmy",
+        "nip": "required — identyfikacja firmy",
+        "address": "required",
+        "phone": "required",
+        "email": "required",
+        "website": "opcjonalne",
+        "opis": "required — dzialanosc, specjalizacje",
+        "kategorie": "required — wybierz trafne"
+      },
+      "priority_for_construction": "HIGH",
+      "submission_method": "manual",
+      "cost": "freemium — podstawowy profil darmowy, premium platny",
+      "last_verified": "2026-05-11",
+      "_comment": "Kluczowy dla B2B budowlanego. Baza firm zintegrowana z GUS — weryfikacja NIP. Przetargi B2B agregowane na platformie."
+    },
+    {
+      "name": "Panorama Firm",
+      "url": "panoramafirm.pl",
+      "category": "universal_business",
+      "audience": "Lokalne firmy uslugowe — klienci szukajacy firm po branzy i lokalizacji. Integracja z Google Maps.",
+      "format_nap": {
+        "name": "required",
+        "address": "required",
+        "phone": "required",
+        "email": "opcjonalne",
+        "website": "opcjonalne",
+        "kategoria": "required",
+        "opis": "required — min 200 znakow rekomendowane",
+        "godziny": "rekomendowane"
+      },
+      "priority_for_construction": "HIGH",
+      "submission_method": "manual",
+      "cost": "freemium — darmowy wpis podstawowy",
+      "last_verified": "2026-05-11",
+      "_comment": "Panorama Firm ma dobry DA i Google integration. Citation dla local SEO. Profil z recenzjami wzmacnia zaufanie."
+    },
+    {
+      "name": "Pkt.pl",
+      "url": "pkt.pl",
+      "category": "universal_business",
+      "audience": "Ogolnopolski katalog firm — klienci poszukujacy firm po slowie kluczowym lub lokalizacji",
+      "format_nap": {
+        "name": "required",
+        "address": "required",
+        "phone": "required",
+        "email": "opcjonalne",
+        "website": "opcjonalne",
+        "kategoria": "required"
+      },
+      "priority_for_construction": "MED",
+      "submission_method": "manual",
+      "cost": "freemium",
+      "last_verified": "2026-05-11",
+      "_comment": "Jeden z wiekszych katalogow firm PL. Dobre DA — citation dla local SEO. Mniejsza rola w budowlance niz Aleo/Panorama."
+    },
+    {
+      "name": "Oferia",
+      "url": "oferia.pl",
+      "category": "universal_business",
+      "audience": "Zleceniodawcy poszukujacy specjalistow do konkretnych zadan — wyceny, realizacje. Aktywne zapytania od klientow.",
+      "format_nap": {
+        "name": "required — nazwa firmy lub specjalista",
+        "lokalizacja": "required",
+        "specjalizacje": "required — lista uslug",
+        "opis": "required",
+        "portfolio": "rekomendowane — zdjecia realizacji",
+        "certyfikaty": "opcjonalne"
+      },
+      "priority_for_construction": "HIGH",
+      "submission_method": "manual",
+      "cost": "freemium — profil darmowy, kontakty z klientami platne (kredyty)",
+      "last_verified": "2026-05-11",
+      "_comment": "Model platformy = aktywne zapytania przychodza do Ciebie. Dla budowlanki wazne — klienci sami opisuja projekt i czekaja na oferty."
+    },
+    {
+      "name": "MuratorPlus",
+      "url": "muratorplus.pl",
+      "category": "industry_construction",
+      "audience": "Architekci, inwestorzy indywidualni, branzy budowlana — autorytet w tematyce budowlanej PL",
+      "format_nap": {
+        "name": "required",
+        "specjalizacja": "required",
+        "lokalizacja": "required",
+        "opis": "required — kompetencje, realizacje",
+        "portfolio": "rekomendowane — kluczowe dla branzy"
+      },
+      "priority_for_construction": "HIGH",
+      "submission_method": "manual",
+      "cost": "platny — weryfikacja opiszemi (model freemium z platna reklama)",
+      "last_verified": "2026-05-11",
+      "_comment": "Murator = top autorytet editorial budowlany PL. Obecnosc = sygnał autorytetu branzy. Wazny dla E-E-A-T (backlink z autorytatywnego zrodla)."
+    },
+    {
+      "name": "FirmyBudowlane.pl",
+      "url": "firmybudowlane.pl",
+      "category": "industry_construction",
+      "audience": "Inwestorzy i zamawiajacy szukajacy firm budowlanych — specjalizowany katalog branzy",
+      "format_nap": {
+        "name": "required",
+        "address": "required",
+        "phone": "required",
+        "email": "required",
+        "nip": "required",
+        "specjalizacje": "required",
+        "zasieg": "required — lista wojew. lub 'cala Polska'",
+        "opis": "required — min 300 znakow",
+        "realizacje": "rekomendowane"
+      },
+      "priority_for_construction": "HIGH",
+      "submission_method": "manual",
+      "cost": "freemium — podstawowy darmowy",
+      "last_verified": "2026-05-11",
+      "_comment": "Specjalizowany katalog budowlany = targetowany ruch. Klienci szukajacy firmy budowlanej trafiaja tu bezposrednio — wysoka intencja zakupu."
+    },
+    {
+      "name": "BudGet",
+      "url": "budget.pl",
+      "category": "industry_construction",
+      "audience": "Inwestorzy i firmy budowlane — platforma do kosztorysow, ofert i realizacji budowlanych",
+      "format_nap": {
+        "name": "required",
+        "lokalizacja": "required",
+        "specjalizacje": "required",
+        "opis": "required",
+        "certyfikaty": "rekomendowane"
+      },
+      "priority_for_construction": "HIGH",
+      "submission_method": "manual",
+      "cost": "freemium",
+      "last_verified": "2026-05-11",
+      "_comment": "Niszowy ale wartosciowy dla GW — platforma kosztorysow budowlanych. Klienci aktywnie poszukujacy wykonawcy z wycena."
+    },
+    {
+      "name": "BudoGuru",
+      "url": "budoguru.pl",
+      "category": "industry_construction",
+      "audience": "Inwestorzy budowlani, prosumenci — porady, firmy, produkty budowlane",
+      "format_nap": {
+        "name": "required",
+        "lokalizacja": "required",
+        "specjalizacje": "required",
+        "opis": "required",
+        "portfolio": "rekomendowane"
+      },
+      "priority_for_construction": "MED",
+      "submission_method": "manual",
+      "cost": "freemium",
+      "last_verified": "2026-05-11",
+      "_comment": "Platforma budowlana ze spolecznoscia prosumentow. Mniejszy ruch niz FirmyBudowlane.pl, ale dobra nisza dla inwestorow indywidualnych."
+    },
+    {
+      "name": "Otodom",
+      "url": "otodom.pl",
+      "category": "industry_real_estate",
+      "audience": "Kupujacy i wynajmujacy nieruchomosci PL — najwaikszy PL portal nieruchomosci",
+      "format_nap": {
+        "name": "required",
+        "adres": "required",
+        "kontakt": "required",
+        "opis_oferty": "required"
+      },
+      "priority_for_construction": "MED",
+      "submission_method": "manual",
+      "cost": "platny — ogloszenia platne per wyswietlenie lub pakiet",
+      "last_verified": "2026-05-11",
+      "_comment": "Dla GW istotny gdy realizuje deweloperke lub sprzedaje domy. Jesli tylko wykonawstwo — nizszy priorytet."
+    },
+    {
+      "name": "Tabelaofert.pl",
+      "url": "tabelaofert.pl",
+      "category": "industry_real_estate",
+      "audience": "Kupujacy nowe mieszkania i domy od deweloperow — porownywarka ofert",
+      "format_nap": {
+        "name": "required — deweloper/firma",
+        "inwestycja": "required",
+        "lokalizacja": "required",
+        "opis": "required"
+      },
+      "priority_for_construction": "LOW",
+      "submission_method": "manual",
+      "cost": "platny",
+      "last_verified": "2026-05-11",
+      "_comment": "Relevantny tylko jesli GW rowniez sprzedaje — pure wykonawstwo = niska relevancja."
+    },
+    {
+      "name": "Domiporta",
+      "url": "domiporta.pl",
+      "category": "industry_real_estate",
+      "audience": "Kupujacy i wynajmujacy nieruchomosci — duzy zasieg PL",
+      "format_nap": {
+        "name": "required",
+        "lokalizacja": "required",
+        "kontakt": "required"
+      },
+      "priority_for_construction": "LOW",
+      "submission_method": "manual",
+      "cost": "platny",
+      "last_verified": "2026-05-11",
+      "_comment": "Portal nieruchomosci — relevantny gdy GW ma oferty nieruchomosci do sprzedazy. Czysty wykonawca = niska relevancja."
+    },
+    {
+      "name": "Gratka.pl",
+      "url": "gratka.pl",
+      "category": "classified",
+      "audience": "Kupujacy i sprzedajacy — nieruchomosci, motoryzacja, praca, uslagi. Duzy zasieg B2C.",
+      "format_nap": {
+        "name": "required",
+        "lokalizacja": "required",
+        "kontakt": "required",
+        "opis": "required",
+        "photos": "rekomendowane"
+      },
+      "priority_for_construction": "MED",
+      "submission_method": "manual",
+      "cost": "freemium",
+      "last_verified": "2026-05-11",
+      "_comment": "Szeroki portal ogloszen — mniejszy niz OLX dla uslug budowlanych, ale warto byc dla zasieg. Dobre jako dodatkowe citation."
+    },
+    {
+      "name": "Morizon",
+      "url": "morizon.pl",
+      "category": "industry_real_estate",
+      "audience": "Kupujacy nieruchomosci — mocny SEO, duzy zasieg nieruchomosci PL",
+      "format_nap": {
+        "name": "required",
+        "lokalizacja": "required",
+        "kontakt": "required"
+      },
+      "priority_for_construction": "LOW",
+      "submission_method": "manual",
+      "cost": "platny",
+      "last_verified": "2026-05-11",
+      "_comment": "Portal nieruchomosci — jak Otodom/Domiporta, relevantny dla GW ze sprzedaza domow. Wykonawstwo only = niska relevancja."
+    },
+    {
+      "name": "Sprzedajemy.pl",
+      "url": "sprzedajemy.pl",
+      "category": "classified",
+      "audience": "Lokalne ogloszenia B2C — alternatywa dla OLX, mniejszy zasieg",
+      "format_nap": {
+        "name": "required",
+        "lokalizacja": "required",
+        "kontakt": "required",
+        "opis": "required"
+      },
+      "priority_for_construction": "LOW",
+      "submission_method": "manual",
+      "cost": "freemium",
+      "last_verified": "2026-05-11",
+      "_comment": "Mniejszy odpowiednik OLX. Warto jako dodatkowe citation — niski koszt. Dla budowlanki marginalny ruch."
+    },
+    {
+      "name": "Gumtree PL",
+      "url": "gumtree.pl",
+      "category": "classified",
+      "audience": "Lokalne ogloszenia B2C — miedzynarodowa platforma, zasieg PL mniejszy niz OLX",
+      "format_nap": {
+        "name": "required",
+        "lokalizacja": "required",
+        "kontakt": "required",
+        "opis": "required",
+        "photos": "rekomendowane"
+      },
+      "priority_for_construction": "LOW",
+      "submission_method": "manual",
+      "cost": "freemium",
+      "last_verified": "2026-05-11",
+      "_comment": "Miedzynarodowy portal z PL oddzialem. Mniejszy ruch niz OLX dla uslug lokalnych PL. Opcjonalny — submission jesli czas pozwala."
+    }
+  ]
+}

@@ -1,0 +1,124 @@
+/**
+ * iron-session 8 configuration — single-user-auth-pl v2.0.0
+ * Stack: iron-session 8 + Next.js 14.2 LTS (NIE Auth.js v5)
+ *
+ * Placeholders do zastąpienia (sed lub ręcznie):
+ *   {{COOKIE_NAME}}  — prefix nazwy cookie, np. "demoapp"
+ *   {{APP_NAME}}     — nazwa aplikacji dla TypeScript comment
+ *
+ * Wymagane env vars:
+ *   SESSION_SECRET   — min 32 znaków (openssl rand -hex 32)
+ *   COOKIE_NAME      — opcjonalnie, fallback "{{COOKIE_NAME}}"
+ *   NODE_ENV         — "production" | "development"
+ */
+
+import { getIronSession, IronSession } from "iron-session";
+import { cookies } from "next/headers";
+import { z } from "zod";
+
+// ─── Walidacja env przy starcie — fail fast ────────────────────────────────
+const EnvSchema = z.object({
+  SESSION_SECRET: z
+    .string
+    .min(32, "SESSION_SECRET musi mieć min 32 znaki. Wygeneruj: openssl rand -hex 32"),
+  NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
+  COOKIE_NAME: z.string.default("{{COOKIE_NAME}}"),
+  BCRYPT_COST: z.coerce.number.min(12).default(12),
+  TOTP_REQUIRED: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((v) => v === "true"),
+});
+
+export function validateEnv {
+  const result = EnvSchema.safeParse(process.env);
+  if (!result.success) {
+    console.error("[AUTH] Brakujące lub nieprawidłowe env vars:");
+    result.error.issues.forEach((issue) => {
+      console.error(`  - ${issue.path.join(".")}: ${issue.message}`);
+    });
+    process.exit(1);
+  }
+  return result.data;
+}
+
+export const env = validateEnv;
+
+// ─── SessionData interface ────────────────────────────────────────────────
+/**
+ * Dane przechowywane w zaszyfrowanym cookie iron-session.
+ * NIE trzymaj tu PII — tylko identyfikatory.
+ */
+export interface SessionData {
+  /** ID zalogowanego użytkownika (z DB). undefined = niezalogowany. */
+  userId?: string;
+  /** Czy TOTP zostało zweryfikowane w tej sesji. */
+  totpVerified?: boolean;
+  /** Timestamp ostatniej aktywności (ms Unix). Używany do idle timeout. */
+  lastActivity?: number;
+  /** Timestamp stworzenia sesji. */
+  createdAt?: number;
+}
+
+// ─── Opcje iron-session ────────────────────────────────────────────────────
+export const sessionOptions = {
+  cookieName: `${env.COOKIE_NAME}_session`,
+  password: env.SESSION_SECRET,
+  cookieOptions: {
+    /**
+     * httpOnly: true — JavaScript (XSS) nie ma dostępu do cookie.
+     * OWASP ASVS §3.4.2
+     */
+    httpOnly: true,
+    /**
+     * secure: true w produkcji — cookie tylko przez HTTPS.
+     * OWASP ASVS §3.4.3
+     */
+    secure: env.NODE_ENV === "production",
+    /**
+     * sameSite: "lax" — ochrona CSRF dla nawigacji cross-site.
+     * OWASP ASVS §3.4.5
+     */
+    sameSite: "lax" as const,
+    path: "/",
+    /**
+     * maxAge: 8 godzin (28800 sekund).
+     * OWASP ASVS §3.3.1 — sesja nie powinna być dłuższa niż workday.
+     * Dla seniora 50+: wylogowanie po 8h zapobiega "zapomniałem wylogować".
+     */
+    maxAge: 60 * 60 * 8,
+  },
+} as const;
+
+// ─── Helper — pobierz sesję (Server Components / Route Handlers) ───────────
+export async function getSession: Promise<IronSession<SessionData>> {
+  return getIronSession<SessionData>(await cookies, sessionOptions);
+}
+
+// ─── Helper — sprawdź czy zalogowany ─────────────────────────────────────
+export async function requireSession: Promise<SessionData & { userId: string }> {
+  const session = await getSession;
+
+  if (!session.userId) {
+    throw new Error("UNAUTHORIZED");
+  }
+
+  // Sprawdź idle timeout — aktualizowane w middleware, tu dodatkowa weryfikacja
+  const MAX_IDLE_MS = 60 * 60 * 8 * 1000; // 8h
+  if (session.lastActivity && Date.now - session.lastActivity > MAX_IDLE_MS) {
+    await session.destroy;
+    throw new Error("SESSION_EXPIRED");
+  }
+
+  return session as SessionData & { userId: string };
+}
+
+// ─── Helper — sprawdź TOTP (gdy TOTP_REQUIRED=true) ──────────────────────
+export async function requireTotpVerified: Promise<void> {
+  if (!env.TOTP_REQUIRED) return; // feature flag wyłączony
+
+  const session = await getSession;
+  if (!session.totpVerified) {
+    throw new Error("TOTP_REQUIRED");
+  }
+}

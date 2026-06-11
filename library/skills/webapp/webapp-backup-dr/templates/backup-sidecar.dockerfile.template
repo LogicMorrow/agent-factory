@@ -1,0 +1,55 @@
+# Backup sidecar Dockerfile — webapp-backup-dr v1.0.0
+# Bazuje na postgres:16-alpine (ma pg_dump, pg_restore, psql natywnie)
+# Dodaje: rclone (B2 sync), curl (healthcheck notify), dcron (cronie dla alpine)
+
+FROM postgres:16-alpine AS backup
+
+# Metadane
+LABEL maintainer="LogicMorrow"
+LABEL project="{{PROJECT_NAME}}"
+LABEL component="backup-sidecar"
+LABEL skill="webapp-backup-dr@1.0.0"
+
+# Instalacja narzędzi
+RUN apk add --no-cache \
+    curl \
+    dcron \
+    rclone \
+    bash \
+    tzdata \
+    && rm -rf /var/cache/apk/*
+
+# Strefa czasowa (ważne dla crona o 3:00 lokalnego)
+ENV TZ=Europe/Warsaw
+RUN cp /usr/share/zoneinfo/Europe/Warsaw /etc/localtime \
+    && echo "Europe/Warsaw" > /etc/timezone
+
+# Katalogi backup
+RUN mkdir -p /backups/daily /backups/weekly /backups/monthly \
+    && chmod 700 /backups
+
+# Kopiuj skrypty
+COPY pg-dump-cron.sh /usr/local/bin/pg-dump-cron.sh
+COPY retention-rotation.sh /usr/local/bin/retention-rotation.sh
+COPY restore-drill.sh /usr/local/bin/restore-drill.sh
+COPY rclone.conf /etc/rclone.conf
+
+RUN chmod +x /usr/local/bin/pg-dump-cron.sh \
+    /usr/local/bin/retention-rotation.sh \
+    /usr/local/bin/restore-drill.sh \
+    && chmod 600 /etc/rclone.conf
+
+# Crontab — pg_dump daily o {{BACKUP_SCHEDULE}}, retention po dumpie (+5 min), drill 1-szy miesiąca 4:00
+RUN echo "{{BACKUP_SCHEDULE}} /usr/local/bin/pg-dump-cron.sh >> /var/log/backup.log 2>&1" > /etc/crontabs/root \
+    && echo "5 3 * * * /usr/local/bin/retention-rotation.sh >> /var/log/backup.log 2>&1" >> /etc/crontabs/root \
+    && echo "0 4 1 * * /usr/local/bin/restore-drill.sh >> /var/log/drill.log 2>&1" >> /etc/crontabs/root
+
+# Volume dla lokalnych backupów (montowany przez compose)
+VOLUME ["/backups"]
+
+# Liveness: sprawdź że crond działa
+HEALTHCHECK --interval=60s --timeout=10s --start-period=30s --retries=3 \
+    CMD pgrep crond || exit 1
+
+# Uruchom crond w foreground (-f = nie daemonizuj, -l 2 = log level INFO)
+CMD ["crond", "-f", "-l", "2"]

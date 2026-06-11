@@ -1,0 +1,78 @@
+# Dependabot Configuration — {{PROJECT_NAME}}
+# Skill: webapp-ci-cd-workflows v1.0.0 
+# Zasada #15 CLAUDE.md pkt 12 — Dependabot security updates
+#
+# Podmień zmienne: {{PROJECT_NAME}}
+#
+# Ekosystemy: npm (node_modules) + github-actions (.github/workflows)
+# Schedule: weekly (poniedziałek)
+# Limit: max 5 otwartych PRów per ekosystem (nie zaśmieca kolejki)
+
+version: 2
+
+updates:
+  # ─────────────────────────────────────────────
+  # npm / pnpm — zależności Node.js
+  # Dependabot obsługuje pnpm-lock.yaml od 2023
+  # ─────────────────────────────────────────────
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Europe/Warsaw"
+
+    # Max 5 otwartych PRów — nie blokuje code review
+    open-pull-requests-limit: 5
+
+    # Etykiety dla łatwego filtrowania
+    labels:
+      - "dependencies"
+      - "automated"
+
+    # Grupuj drobne aktualizacje w jeden PR (mniej noise)
+    groups:
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+    # Security updates zawsze osobny PR (łatwiejszy audit trail)
+    # (domyślnie enabled — jawne dla przejrzystości)
+    allow:
+      - dependency-type: "all"
+
+    # Commit message prefix dla łatwego filtrowania
+    commit-message:
+      prefix: "deps"
+      prefix-development: "deps-dev"
+      include: "scope"
+
+    reviewers:
+      - "{{GHCR_OWNER}}"
+
+  # ─────────────────────────────────────────────
+  # GitHub Actions — aktualizacje actions/@version
+  # ─────────────────────────────────────────────
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:30"
+      timezone: "Europe/Warsaw"
+
+    open-pull-requests-limit: 5
+
+    labels:
+      - "dependencies"
+      - "github-actions"
+      - "automated"
+
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+
+    reviewers:
+      - "{{GHCR_OWNER}}"

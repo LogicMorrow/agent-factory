@@ -1,0 +1,241 @@
+# Runbook deploymentowy — {{PROJECT_NAME}}
+
+**Maintainer:** {{OWNER_NAME}} ({{OWNER_EMAIL}})
+**VPS prod:** {{VPS_PROD_HOST}}
+**App port (internal):** {{APP_PORT}} (np. 3020)
+**Registry:** ghcr.io/{{GITHUB_ORG}}/{{PROJECT_SLUG}}
+**Last updated:** {{YYYY-MM-DD}}
+
+---
+
+## Pre-deploy checklist
+
+Wykonaj PRZED każdym deploy na produkcję:
+
+```
+[ ] CI pipeline GREEN (ci.yml: typecheck + lint + tests ≥80% coverage + e2e PASS)
+[ ] Brak otwartych security alerts w Trivy (security.yml PASS)
+[ ] Prisma migrations: brak pending (`npx prisma migrate status` → "Database schema is up to date")
+[ ] B2 backup z poprzedniej nocy dostępny (`rclone ls b2:{{B2_BUCKET_NAME}} | tail -3`)
+[ ] Sentry: zero nowych unhandled errors z ostatnich 24h (dashboard check)
+[ ] Caddyfile syntax valid (`caddy validate --config Caddyfile` lub docker exec)
+[ ] Secrets nie zrotowane od >90 dni → zrotuj TERAZ przed deploy (patrz SECURITY.md)
+[ ] Healthcheck pre-deploy: `/api/ready` zwraca {"status":"ok"} (current prod)
+[ ] Rollback tag gotowy: last stable SHA znany (`docker images | grep demo-app`)
+[ ] Komunikat użytkownikowi: Jan powiadomiony o maintenance window (jeśli dzień roboczy)
+```
+
+---
+
+## Deploy procedure (CD pipeline — happy path)
+
+CD pipeline uruchamia się automatycznie po push do `main` (jeśli CI PASS). Monitoruj w GitHub Actions.
+
+**Jeśli CD pipeline fail → manual fallback poniżej.**
+
+---
+
+## Manual deploy procedure (fallback przy CD failure)
+
+```bash
+# SSH na VPS prod
+ssh {{VPS_USER}}@{{VPS_PROD_HOST}}
+cd /opt/{{PROJECT_SLUG}}
+
+# 1. Pobierz nowy image (SHA z GitHub Actions artifact lub ręcznie)
+export NEW_SHA=$(git ls-remote https://github.com/{{GITHUB_ORG}}/{{PROJECT_SLUG}} HEAD | cut -f1 | head -c12)
+docker pull ghcr.io/{{GITHUB_ORG}}/{{PROJECT_SLUG}}:${NEW_SHA}
+
+# 2. Tag jako current candidate
+docker tag ghcr.io/{{GITHUB_ORG}}/{{PROJECT_SLUG}}:${NEW_SHA} \
+           ghcr.io/{{GITHUB_ORG}}/{{PROJECT_SLUG}}:current-candidate
+
+# 3. Update compose.prod.yml IMAGE tag (sed lub ręcznie)
+sed -i "s|image: ghcr.io/{{GITHUB_ORG}}/{{PROJECT_SLUG}}:.*|image: ghcr.io/{{GITHUB_ORG}}/{{PROJECT_SLUG}}:${NEW_SHA}|" compose.prod.yml
+
+# 4. Rolling restart (app tylko, nie db/proxy)
+docker compose -f compose.prod.yml up -d app
+
+# 5. Healthcheck verification (10 retries × 3s = 30s max wait)
+HEALTHY=false
+for i in {1..10}; do
+  STATUS=$(curl -sf http://localhost:{{APP_PORT}}/api/ready 2>/dev/null | jq -r .status 2>/dev/null)
+  if [ "$STATUS" = "ok" ]; then
+    echo "HEALTHY after ${i} attempts (${i}x3s)"
+    HEALTHY=true
+    break
+  fi
+  echo "Attempt $i: status=$STATUS, waiting 3s..."
+  sleep 3
+done
+
+# 6. Jeśli unhealthy → ROLLBACK (patrz poniżej)
+if [ "$HEALTHY" != "true" ]; then
+  echo "DEPLOY FAILED — initiating rollback"
+  # patrz sekcja Rollback procedure
+fi
+
+# 7. Weryfikacja wersji
+curl -sf http://localhost:{{APP_PORT}}/api/version | jq .
+# Oczekiwany output: {"version":"x.y.z","sha":"{{SHA12}}","env":"production"}
+
+# 8. Sentry check — zero nowych unhandled errors w 5 min
+echo "Monitor Sentry dashboard for 5 minutes: https://sentry.io/organizations/{{SENTRY_ORG}}/projects/{{SENTRY_PROJECT}}/"
+```
+
+---
+
+## Rollback procedure
+
+Uruchom gdy: healthcheck FAIL, Sentry alert krytyczny, user zgłoszenie niedziałającej funkcji.
+
+```bash
+# Na VPS prod
+ssh {{VPS_USER}}@{{VPS_PROD_HOST}}
+cd /opt/{{PROJECT_SLUG}}
+
+# 1. Znajdź poprzedni stabilny tag
+docker images ghcr.io/{{GITHUB_ORG}}/{{PROJECT_SLUG}} --format "{{.Tag}}\t{{.CreatedAt}}" | sort -k2 -r | head -5
+# Wybierz SHA z ostatniego działającego deploy
+
+export PREV_SHA={{PREVIOUS_STABLE_SHA}}  # uzupełnij ręcznie
+
+# 2. Update compose.prod.yml na poprzedni SHA
+sed -i "s|image: ghcr.io/{{GITHUB_ORG}}/{{PROJECT_SLUG}}:.*|image: ghcr.io/{{GITHUB_ORG}}/{{PROJECT_SLUG}}:${PREV_SHA}|" compose.prod.yml
+
+# 3. Restart na poprzedni image
+docker compose -f compose.prod.yml up -d app
+
+# 4. Healthcheck
+for i in {1..10}; do
+  STATUS=$(curl -sf http://localhost:{{APP_PORT}}/api/ready 2>/dev/null | jq -r .status 2>/dev/null)
+  [ "$STATUS" = "ok" ] && echo "ROLLBACK OK after ${i}x3s" && break
+  sleep 3
+done
+
+# 5. Weryfikacja
+curl -sf http://localhost:{{APP_PORT}}/api/version | jq .
+# SHA powinno być $PREV_SHA
+
+# 6. Zapis incydentu
+echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) ROLLBACK to ${PREV_SHA} — reason: [OPIS POWODU]" \
+  >> /opt/{{PROJECT_SLUG}}/artifacts/audit-trail/deploy-history.log
+```
+
+**Post-rollback:** utwórz GitHub Issue z opisem przyczyny i tagiem `rollback`. Nie deploy nowego SHA bez RCA.
+
+---
+
+## Restore from B2 (disaster recovery)
+
+Uruchom gdy: VPS utracony / DB corrupted / dane wymagają przywrócenia.
+
+```bash
+# Krok 1: Pobierz ostatni backup z B2
+rclone ls b2:{{B2_BUCKET_NAME}}/daily/ | sort | tail -3
+# Wybierz backup do restore: np. demoapp_2026-05-28_03-00-00.dump.gz
+
+export BACKUP_FILE=demoapp_{{YYYY-MM-DD}}_03-00-00.dump.gz
+rclone copy b2:{{B2_BUCKET_NAME}}/daily/${BACKUP_FILE} /tmp/restore/
+
+# Krok 2: Weryfikacja integralności
+cat /tmp/restore/${BACKUP_FILE%.gz}.md5
+md5sum /tmp/restore/${BACKUP_FILE} | awk '{print $1}'
+# Oba muszą być identyczne — jeśli różne: STOP, sprawdź inny backup
+
+# Krok 3: Decompress
+gunzip /tmp/restore/${BACKUP_FILE}
+export DUMP_FILE=${BACKUP_FILE%.gz}
+
+# Krok 4: Restore do nowej/istniejącej DB
+# UWAGA: NISZCZY OBECNĄ BAZĘ — upewnij się, że masz backup bieżącego stanu
+docker compose -f compose.prod.yml stop app
+docker exec -e PGPASSWORD={{DB_PASSWORD}} {{PROJECT_SLUG}}_db_1 \
+  dropdb -U {{DB_USER}} {{DB_NAME}} --if-exists
+docker exec -e PGPASSWORD={{DB_PASSWORD}} {{PROJECT_SLUG}}_db_1 \
+  createdb -U {{DB_USER}} {{DB_NAME}}
+docker exec -i -e PGPASSWORD={{DB_PASSWORD}} {{PROJECT_SLUG}}_db_1 \
+  pg_restore -U {{DB_USER}} -d {{DB_NAME}} --no-privileges --no-owner < /tmp/restore/${DUMP_FILE}
+
+# Krok 5: Prisma migrate deploy (schema sync)
+docker compose -f compose.prod.yml run --rm app pnpm prisma migrate deploy
+
+# Krok 6: Start app
+docker compose -f compose.prod.yml up -d app
+
+# Krok 7: Smoke test restore
+curl -sf http://localhost:{{APP_PORT}}/api/ready | jq .
+# {"status":"ok","db":"connected"}
+
+# Krok 8: Ręczna weryfikacja danych
+# Zaloguj się → sprawdź ostatnie 3-5 ofert w archiwum → czy dane się zgadzają z oczekiwaniami
+
+# Krok 9: Cleanup
+rm -rf /tmp/restore/
+```
+
+---
+
+## Healthcheck verification post-deploy
+
+```bash
+# 1. Liveness
+curl -sf http://localhost:{{APP_PORT}}/api/health
+# Expected: {"status":"ok","uptime":42}
+
+# 2. Readiness (DB ping)
+curl -sf http://localhost:{{APP_PORT}}/api/ready
+# Expected: {"status":"ok","db":"connected","migrations":"up-to-date"}
+
+# 3. Version (SHA verification)
+curl -sf http://localhost:{{APP_PORT}}/api/version
+# Expected: {"version":"x.y.z","sha":"<12-char SHA>","env":"production"}
+
+# 4. Caddy TLS (zewnętrzny)
+curl -sf https://{{PROD_DOMAIN}}/api/ready
+# Expected: identyczny jak wewnętrzny + brak TLS errors
+
+# 5. UptimeRobot ping (2-5 min po deploy)
+# Sprawdź dashboard: https://uptimerobot.com/dashboard
+# Status: UP (zielony) — jeśli DOWN: błąd healthchecku nie był wykryty lokalnie
+
+# 6. Sentry — zero nowych errors w 5 min post-deploy
+# Dashboard: https://sentry.io/organizations/{{SENTRY_ORG}}/projects/{{SENTRY_PROJECT}}/
+```
+
+---
+
+## Incident escalation matrix
+
+| Severity | Definicja | Reakcja (SLA) | MTTR (SLA) | Escalation |
+|---|---|---|---|---|
+| **Down** | Pełna niedostępność aplikacji (HTTP 5xx lub timeout) | 2h | 8h | {{OWNER_NAME}} — {{OWNER_PHONE}} |
+| **Degraded** | Aplikacja działa, ale >1% 5xx errors lub p95 latency >5s | 4h | 24h | {{OWNER_NAME}} — {{OWNER_EMAIL}} |
+| **Security incident** | Podejrzany dostęp, wyciek danych, anomalia logów | 1h | Natychmiastowa izolacja | {{OWNER_NAME}} — RODO: UODO w 72h jeśli PII |
+| **Maintenance** | Planowane okno (deploy, rotacja sekretów) | 24h notice | Planowane | Notify Jan przed maintenance |
+
+**SLA obowiązuje w godzinach pracy: {{WORKING_HOURS}}** (np. 8:00-18:00 CET, 5 dni)
+
+**Pełna procedura IR:** `docs/IR-procedure.md`
+
+---
+
+## Self-hosted runner maintenance
+
+```bash
+# Sprawdź status runnera
+systemctl status github-runner
+
+# Restart runnera (po aktualizacji lub crash)
+sudo systemctl restart github-runner
+
+# Logi runnera
+journalctl -u github-runner -n 50 --no-pager
+
+# Update runnera (quarterly)
+cd /home/github-runner/actions-runner
+./config.sh remove --token {{RUNNER_REMOVAL_TOKEN}}
+# Pobierz nową wersję z https://github.com/actions/runner/releases
+# Skonfiguruj na nowo: ./config.sh --url https://github.com/{{GITHUB_ORG}}/{{PROJECT_SLUG}} --token {{NEW_TOKEN}}
+sudo ./svc.sh install && sudo ./svc.sh start
+```

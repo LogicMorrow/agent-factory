@@ -1,0 +1,376 @@
+_comment: "Seasonal content calendar GW PL 2026. Sezon budowlany marzec-listopad. Content focus per miesiac z intent funnel mapping. Parseable: python -c \"import yaml; yaml.safe_load(open('seasonal-calendar-pl.yaml'))\""
+_meta:
+  last_updated: "2026-05-11"
+  valid_until: "2027-05-11"
+  total_months: 12
+  seasons_count: 4
+  target_audience: "firmy generalnego wykonawcy (GW PL)"
+  scope: "domy jednorodzinne + blizniaki (primary) + hale i budynki gospodarcze B2B (secondary)"
+  note: "Sezon budowlany marzec-listopad. Peak research styczeń-marzec (planowanie inwestycji). Off-season grudzień-luty (evergreen + planowanie)."
+
+# ─────────────────────────────────────────────
+# 12 MIESIĘCY — pełna specyfikacja
+# ─────────────────────────────────────────────
+months:
+
+  styczen:
+    label: "Styczeń"
+    season: "peak_research"
+    season_label: "Peak Research — planowanie inwestycji"
+    intent_focus: "informational"
+    building_activity: "brak lub minimalna (mrozy)"
+    publish_cadence: "2-3 wpisy/tydzien"
+    content_types:
+      - hub_article
+      - cost_breakdown
+      - faq_post
+      - checklist
+    primary_topics:
+      - "planowanie budowy 2026 — od czego zacząć"
+      - "ile kosztuje dom jednorodzinny 2026"
+      - "etapy budowy domu — kompletny przewodnik"
+      - "jak wybrać projekt domu jednorodzinnego"
+      - "kosztorys wstępny budowy domu — jak obliczyć"
+    secondary_topics:
+      - "stany deweloperskie SSO SSZ — wyjaśnienie"
+      - "dom parterowy vs piętrowy — różnice kosztów"
+      - "pozwolenie na budowę 2026 — jak uzyskać"
+    cta_type: "soft"
+    cta_examples:
+      - "Pobierz bezpłatną checklistę planowania budowy"
+      - "Zapisz się do newslettera — porady budowlane"
+    seo_notes: "Najwyższy wolumen zapytań planowania rocznego. Priorytetuj artykuły kosztowe z widełkami PLN."
+
+  luty:
+    label: "Luty"
+    season: "peak_research"
+    season_label: "Peak Research — konkretyzacja planów"
+    intent_focus: "informational"
+    building_activity: "brak lub minimalna (mrozy)"
+    publish_cadence: "2-3 wpisy/tydzien"
+    content_types:
+      - hub_article
+      - faq_post
+      - comparison_article
+      - guide
+    primary_topics:
+      - "wybór projektu domu gotowego vs indywidualny — różnice i koszty"
+      - "ile trwa budowa domu jednorodzinnego — realny harmonogram"
+      - "ceramika vs ytong vs silikat — porównanie materiałów 2026"
+      - "jaki fundament do domu jednorodzinnego — ławy czy płyta"
+    secondary_topics:
+      - "co wchodzi w stan surowy otwarty SSO"
+      - "umowa z generalnym wykonawcą — co sprawdzić"
+      - "wybór działki budowlanej — kryteria"
+    cta_type: "soft"
+    cta_examples:
+      - "Pobierz poradnik wyboru projektu domu"
+      - "Sprawdź nasze portfolio realizacji"
+    seo_notes: "Zapytania konkretyzują się — inwestorzy zaczynają badać GW. Wzmocnij artykuły portfolio."
+
+  marzec:
+    label: "Marzec"
+    season: "active_decision"
+    season_label: "Active Decision — wybór GW i materiałów"
+    intent_focus: "commercial"
+    building_activity: "start sezonu — pierwsze fundamenty"
+    publish_cadence: "2-3 wpisy/tydzien"
+    content_types:
+      - comparison_article
+      - guide
+      - case_study
+      - faq_post
+    primary_topics:
+      - "jak wybrać generalnego wykonawcę — 10 kryteriów"
+      - "kosztorys vs ryczałt — co wybrać przy budowie domu"
+      - "strop teriva vs monolityczny — kiedy co wybrać"
+      - "case study: dom 150m² SSZ, woj. mazowieckie"
+    secondary_topics:
+      - "pierwsze prace w terenie — kiedy zaczynać fundamenty"
+      - "warunki geotechniczne działki — badanie gruntu"
+      - "harmonogram budowy sezon 2026"
+    cta_type: "medium"
+    cta_examples:
+      - "Umów bezpłatną konsultację z naszym kierownikiem"
+      - "Sprawdź dostępność ekipy na sezon 2026"
+    seo_notes: "Sezon budowlany startuje. Inwestorzy wybierają GW. Priorytetuj case studies i artykuły 'jak wybrać GW'."
+
+  kwiecien:
+    label: "Kwiecień"
+    season: "active_decision"
+    season_label: "Active Decision — finalizacja decyzji"
+    intent_focus: "commercial"
+    building_activity: "wysoki — fundamenty, mury"
+    publish_cadence: "2 wpisy/tydzien"
+    content_types:
+      - comparison_article
+      - case_study
+      - guide
+      - landing_page_refresh
+    primary_topics:
+      - "umowa o roboty budowlane — co powinna zawierać"
+      - "blachodachówka vs dachówka ceramiczna — porównanie 2026"
+      - "więźba płatwiowo-kleszczowa vs kratownice — kiedy co"
+      - "case study: realizacje marzec 2026 — relacja z budowy"
+    secondary_topics:
+      - "harmonogram prac murarskich — ile trwa murowanie"
+      - "materiały budowlane 2026 — ceny i dostępność"
+      - "dopłaty do budowy domu — programy rządowe 2026"
+    cta_type: "medium"
+    cta_examples:
+      - "Zapytaj o wycenę — odpowiadamy w 48h"
+      - "Sprawdź wolne terminy na sezon 2026"
+    seo_notes: "Szczyt aktywności decyzyjnej. Aktualizuj case studies o zdjęcia z bieżących realizacji."
+
+  maj:
+    label: "Maj"
+    season: "active_decision"
+    season_label: "Active Decision — transactional peak"
+    intent_focus: "transactional"
+    building_activity: "bardzo wysoki — mury, stropy"
+    publish_cadence: "1-2 wpisy/tydzien"
+    content_types:
+      - landing_page_refresh
+      - case_study
+      - portfolio_update
+    primary_topics:
+      - "portfolio realizacji GW — domy jednorodzinne 2024-2026"
+      - "wycena budowy domu — jak przebiega konsultacja"
+      - "nasze aktualne realizacje maj 2026 — zdjęcia"
+    secondary_topics:
+      - "certyfikaty i uprawnienia naszej ekipy"
+      - "referencje od klientów — opinie inwestorów"
+    cta_type: "strong"
+    cta_examples:
+      - "Wypełnij formularz wyceny — bezpłatna konsultacja"
+      - "Zadzwoń — sprawdź wolne terminy"
+    seo_notes: "Mniej contentu, więcej konwersji. Landing page wyceny musi być zoptymalizowany pod szybkie ładowanie."
+
+  czerwiec:
+    label: "Czerwiec"
+    season: "build_engagement"
+    season_label: "Build Engagement — realizacje w toku"
+    intent_focus: "transactional"
+    building_activity: "szczyt — mury, stropy, więźby"
+    publish_cadence: "1-2 wpisy/tydzien"
+    content_types:
+      - case_study
+      - blog_z_budowy
+      - portfolio_update
+    primary_topics:
+      - "case study: dom 120m² ceramika — relacja z budowy czerwiec"
+      - "więźba dachowa — etap na naszych budowach czerwiec 2026"
+      - "FAQ lato 2026 — najczęstsze pytania inwestorów"
+    secondary_topics:
+      - "jak chronić budowę przed upałami — porady techniczne"
+      - "beton w upale — jak pielęgnować"
+    cta_type: "medium"
+    cta_examples:
+      - "Zapytaj o realizacje na 2027 — wpisz się na listę"
+    seo_notes: "Content real-time z budów (zdjęcia tygodnia) buduje social proof i E-E-A-T. Instagram/Google Business Posts synergy."
+
+  lipiec:
+    label: "Lipiec"
+    season: "build_engagement"
+    season_label: "Build Engagement — finalizacje etapów"
+    intent_focus: "transactional"
+    building_activity: "wysoki — dachy, stolarka"
+    publish_cadence: "1-2 wpisy/tydzien"
+    content_types:
+      - case_study
+      - blog_z_budowy
+      - comparison_article
+    primary_topics:
+      - "case study: pokrycie dachu dachówka ceramiczna — realizacja"
+      - "wybór okien na dom jednorodzinny — poradnik 2026"
+      - "stolarka zewnętrzna SSZ — co obejmuje"
+    secondary_topics:
+      - "wylewki betonowe w lecie — pielęgnacja"
+      - "instalacje wod-kan rough-in — kiedy etap"
+    cta_type: "medium"
+    cta_examples:
+      - "Umów wizję lokalną na 2027"
+    seo_notes: "Artykuły o etapach jesiennych (dach, stolarka) — przydatne dla inwestorów planujących 2027."
+
+  sierpien:
+    label: "Sierpień"
+    season: "build_engagement"
+    season_label: "Build Engagement — case studies końcowe"
+    intent_focus: "commercial"
+    building_activity: "wysoki — wykończenia, odbiory"
+    publish_cadence: "1-2 wpisy/tydzien"
+    content_types:
+      - case_study
+      - faq_post
+      - evergreen_update
+    primary_topics:
+      - "case study final: dom 150m² SSZ — zdjęcia po odbiorze"
+      - "FAQ sierpień: co po SSZ — instalacje, tynki, wykończenie"
+      - "jak uzyskać pozwolenie na użytkowanie — krok po kroku"
+    secondary_topics:
+      - "ile kosztuje wykończenie domu po SSZ — orientacyjne koszty"
+      - "co sprawdza inspektor przy odbiorze budynku"
+    cta_type: "soft"
+    cta_examples:
+      - "Pobierz checklistę odbioru budynku"
+      - "Zapytaj o realizacje na 2027"
+    seo_notes: "Case studies z pełnymi zdjęciami (before/after) generują backlinki organicznie. Wzmocnij E-E-A-T."
+
+  wrzesien:
+    label: "Wrzesień"
+    season: "build_engagement"
+    season_label: "Build Engagement — koniec sezonu"
+    intent_focus: "commercial"
+    building_activity: "sredni — ostatnie odbiory"
+    publish_cadence: "1-2 wpisy/tydzien"
+    content_types:
+      - case_study
+      - comparison_article
+      - planning_guide
+    primary_topics:
+      - "case study: realizacje sezonu 2026 — podsumowanie"
+      - "przygotowanie do przerwy zimowej na budowie — checklist"
+      - "planowanie budowy 2027 — kiedy zacząć szukać GW"
+    secondary_topics:
+      - "jak zabezpieczyć niedokończony budynek na zimę"
+      - "dopłaty i dofinansowania budowlane 2027 — co wiadomo"
+    cta_type: "soft"
+    cta_examples:
+      - "Wpisz się na listę 2027 — wolne miejsca ograniczone"
+    seo_notes: "Prealokacja terminów na 2027 — dobry moment na zbieranie leadów long-term."
+
+  pazdziernik:
+    label: "Październik"
+    season: "off_season_retention"
+    season_label: "Off-season Retention — evergreen"
+    intent_focus: "informational"
+    building_activity: "niski — koniec sezonu"
+    publish_cadence: "1 wpis/tydzien"
+    content_types:
+      - evergreen_update
+      - faq_post
+      - planning_guide
+    primary_topics:
+      - "planowanie budowy 2027 — harmonogram od A do Z"
+      - "słownik budowlany — 60 terminów wyjaśnionych"
+      - "FAQ evergreen: najczęstsze pytania inwestorów"
+    secondary_topics:
+      - "jak wybrać projekt domu na 2027 — co sprawdzić"
+      - "materiały budowlane — jak szukać i porównywać"
+    cta_type: "soft"
+    cta_examples:
+      - "Pobierz słownik budowlany PDF"
+      - "Zapisz się do newslettera — aktualności 2027"
+    seo_notes: "Odświeżaj evergreen artykuły — aktualizacja daty i sekcji 'nowości 2026' poprawia ranking."
+
+  listopad:
+    label: "Listopad"
+    season: "off_season_retention"
+    season_label: "Off-season Retention — planowanie 2027"
+    intent_focus: "informational"
+    building_activity: "minimalna"
+    publish_cadence: "1 wpis/tydzien"
+    content_types:
+      - evergreen_update
+      - faq_post
+      - thought_leadership
+    primary_topics:
+      - "budowa domu 2027 — co się zmienia w przepisach"
+      - "FAQ zimowe: czy budować w zimie — plusy i minusy"
+      - "warunki umów budowlanych — na co zwrócić uwagę 2027"
+    secondary_topics:
+      - "ubezpieczenie budowy domu — czy warto"
+      - "prawo budowlane 2026 — podsumowanie zmian"
+    cta_type: "soft"
+    cta_examples:
+      - "Skonsultuj plan budowy 2027 — bezpłatna rozmowa"
+    seo_notes: "Pierwsze zapytania planowania 2027 pojawiają się w listopadzie. Ustaw remarketing."
+
+  grudzien:
+    label: "Grudzień"
+    season: "off_season_retention"
+    season_label: "Off-season Retention — recap i trendy"
+    intent_focus: "informational"
+    building_activity: "minimalna (mrozy)"
+    publish_cadence: "1 wpis/tydzien"
+    content_types:
+      - year_recap
+      - thought_leadership
+      - planning_guide
+    primary_topics:
+      - "budownictwo jednorodzinne 2026 — podsumowanie roku"
+      - "trendy w budownictwie 2027 — co będzie popularne"
+      - "planowanie budowy od podstaw — przewodnik dla początkujących"
+    secondary_topics:
+      - "jak wybrać GW na 2027 — kiedy zacząć szukać"
+      - "kredyt hipoteczny a budowa domu — podstawy"
+    cta_type: "soft"
+    cta_examples:
+      - "Sprawdź dostępność na sezon 2027"
+    seo_notes: "Niski wolumen zapytań — fokus na content o długim ogonie i linkbuilding passywny (udostępnienia poradników)."
+
+# ─────────────────────────────────────────────
+# SEZONOWOŚĆ PER TYP INWESTYCJI
+# ─────────────────────────────────────────────
+building_types_seasonality:
+
+  domy_jednorodzinne:
+    peak_research: "styczen-marzec"
+    active_decision: "marzec-czerwiec"
+    build_season: "kwiecien-pazdziernik"
+    off_season: "listopad-luty"
+    notes: "Główna sezonowość rynku GW. 80%+ zapytań na google.pl w kategorii 'budowa domu' — styczeń-marzec."
+
+  blizniak_i_szeregowe:
+    peak_research: "styczen-marzec"
+    active_decision: "kwiecien-czerwiec"
+    build_season: "kwiecien-pazdziernik"
+    off_season: "listopad-luty"
+    notes: "Analogiczne do domów jednorodzinnych. Content może być wspólny z modyfikacją 'bliźniak' w tytule."
+
+  hale_i_budynki_gospodarcze_b2b:
+    peak_research: "caly_rok"
+    active_decision: "caly_rok"
+    build_season: "marzec-listopad"
+    off_season: "grudzien-luty"
+    notes: |
+      Mniej sezonowości — inwestor B2B (firma, zakład produkcyjny) planuje niezależnie od sezonu.
+      Krótszy cykl decyzyjny niż B2C (tygodnie vs miesiące).
+      Zapytania: 'hala stalowa koszt', 'budowa zakładu produkcyjnego', 'garaz blaszany wycena'.
+      Content: mniej poradnikowy, więcej specyfikacyjny i portfolio-focused.
+      Cadence: 1 wpis/tydzien przez cały rok (bez sezonowych spikeów).
+    content_types_b2b:
+      - portfolio_industrial
+      - cost_breakdown_industrial
+      - spec_sheet
+      - case_study_b2b
+
+# ─────────────────────────────────────────────
+# PUBLISH CADENCE SUMMARY
+# ─────────────────────────────────────────────
+publish_cadence_summary:
+  peak_research:
+    months: ["styczen", "luty", "marzec"]
+    wpisy_tydzien: "2-3"
+    focus: "informational + cost breakdowns"
+  active_decision:
+    months: ["kwiecien", "maj"]
+    wpisy_tydzien: "1-2"
+    focus: "commercial + case studies"
+  build_engagement:
+    months: ["czerwiec", "lipiec", "sierpien", "wrzesien"]
+    wpisy_tydzien: "1-2"
+    focus: "transactional + real-time case studies"
+  off_season:
+    months: ["pazdziernik", "listopad", "grudzien"]
+    wpisy_tydzien: "1"
+    focus: "evergreen + planning + year recap"
+
+# ─────────────────────────────────────────────
+# METADANE IMPLEMENTACYJNE
+# ─────────────────────────────────────────────
+implementation_notes:
+  mdx_frontmatter_field: "publish_month"
+  automated_scheduling: "seo-content-writer (E3) czyta ten plik przy generowaniu briefów cyklicznych"
+  update_policy: "co 12 miesięcy — aktualizuj primary_topics i cta_examples. Nie zmieniaj schematu YAML bez bumpu version."
+  version: "1.0.0"

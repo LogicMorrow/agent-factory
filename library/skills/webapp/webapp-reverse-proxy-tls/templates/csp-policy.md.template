@@ -1,0 +1,154 @@
+# CSP Policy — Konfiguracja per projekt
+# Skill: webapp-reverse-proxy-tls v1.0.0
+# Template: wypełnij sekcje WYBÓR i WHITELIST per projekt
+
+## Projekt: {{PROJECT_NAME}}
+## Domena: {{PROD_DOMAIN}}
+## Data: {{DATE}}
+
+---
+
+## 1. Recommended defaults dla Next.js 14 App Router
+
+### Produkcja (enforcement mode)
+
+```
+Content-Security-Policy:
+  default-src 'self';
+  script-src 'nonce-{NONCE}' 'strict-dynamic';
+  style-src 'self' 'unsafe-inline';
+  img-src 'self' data: blob: {{CSP_IMG_SOURCES}};
+  font-src 'self' data:;
+  connect-src 'self' {{CSP_CONNECT_SOURCES}};
+  media-src 'none';
+  frame-ancestors 'none';
+  base-uri 'self';
+  form-action 'self';
+  object-src 'none';
+  upgrade-insecure-requests;
+  report-uri {{CSP_REPORT_URI}}
+```
+
+**Dlaczego `'strict-dynamic'`:**
+- `'strict-dynamic'` pozwala skryptom załadowanym przez nonce ładować kolejne skrypty (Next.js lazy chunks).
+- Zastępuje whitelist domenową (bezpieczniejsze — nie można obejść przez CDN takiej samej domeny).
+- Wymaga nonce generation per-request w middleware.ts.
+
+**Dlaczego `style-src 'unsafe-inline'`:**
+- Tailwind CSS + shadcn generują inline styles (className string). Bez `'unsafe-inline'` style nie działają.
+- Alternatywa: hash-based dla konkretnych inline styles — zbyt pracochłonne dla Tailwind.
+- `'unsafe-inline'` w style-src NIE jest krytyczne (XSS przez CSS jest edge-case, nie RCE).
+
+### Development (report-only mode, relaxed)
+
+```
+Content-Security-Policy-Report-Only:
+  default-src 'self';
+  script-src 'self' 'unsafe-inline' 'unsafe-eval';
+  style-src 'self' 'unsafe-inline';
+  img-src 'self' data: blob:;
+  connect-src 'self' ws: wss:;
+  font-src 'self' data:;
+  object-src 'none'
+```
+
+---
+
+## 2. Whitelist 3rd-party per use-case
+
+### Sentry (error tracking)
+
+```
+script-src:   https://browser.sentry-cdn.com
+connect-src:  https://sentry.io https://o*.ingest.sentry.io
+```
+
+### Google Analytics / Tag Manager
+
+```
+script-src:   https://www.googletagmanager.com https://www.google-analytics.com
+img-src:      https://www.google-analytics.com https://stats.g.doubleclick.net
+connect-src:  https://www.google-analytics.com https://stats.g.doubleclick.net
+```
+
+> UWAGA: GTM tworzy dynamiczne skrypty — wymaga `'strict-dynamic'` lub `'unsafe-inline'`.
+> Preferuj nonce + strict-dynamic zamiast whitelist.
+
+### Google Fonts
+
+```
+style-src:    https://fonts.googleapis.com
+font-src:     https://fonts.gstatic.com
+```
+
+### Zewnętrzne obrazy (CDN)
+
+```
+img-src:   https://cdn.{{PROD_DOMAIN}} https://res.cloudinary.com
+```
+
+### DemoApp (minimalna konfiguracja — brak 3rd-party poza Sentry)
+
+```
+script-src:   'nonce-{NONCE}' 'strict-dynamic'
+style-src:    'self' 'unsafe-inline'
+img-src:      'self' data: blob:
+connect-src:  'self' https://sentry.io https://o*.ingest.sentry.io
+font-src:     'self' data:
+```
+
+---
+
+## 3. Workflow wdrożenia CSP (gradual tightening)
+
+### Krok 1 — Report-Only (tydzień 1)
+
+```typescript
+// src/middleware.ts — tryb raportowania (nie blokuje)
+headers.set(
+  'Content-Security-Policy-Report-Only',
+  `default-src 'self'; script-src 'nonce-${nonce}' 'strict-dynamic'; ...`
+)
+```
+
+Zbieraj violations w Sentry (`beforeSend` filtruje CSP reports) lub własny endpoint.
+
+### Krok 2 — Analiza violations (tydzień 1-2)
+
+Wzorce do zbadania w Sentry / logach:
+- `script-src` violations → czy to legitymacyjne lazy-load Next.js?
+- `connect-src` violations → czy to Sentry / GA / CDN?
+- `img-src` violations → czy to external images (user-uploaded)?
+
+### Krok 3 — Enforcement (po 48h bez niespodziewanych violations)
+
+```typescript
+// Zmień nagłówek
+headers.set('Content-Security-Policy', policy)  // enforcement
+// Usuń:
+headers.delete('Content-Security-Policy-Report-Only')
+```
+
+### Krok 4 — Weryfikacja
+
+```bash
+# csp-evaluator (Google)
+curl -s "https://csp-evaluator.withgoogle.com/getCSPEvaluation?csp=$(urlencode "$CSP")"
+# Cel: "No findings" lub max "Medium severity" dla 'unsafe-inline' style-src
+```
+
+---
+
+## 4. WYBÓR dla {{PROJECT_NAME}} (wypełnij)
+
+**3rd-party wymagające whitelist:**
+- [ ] Sentry → dodaj `https://browser.sentry-cdn.com` do script-src + connect-src
+- [ ] Google Analytics → dodaj GTM/GA sources
+- [ ] Google Fonts → dodaj fonts.googleapis.com + fonts.gstatic.com
+- [ ] CDN obrazów → dodaj URL CDN do img-src
+- [ ] Inne: ___
+
+**Endpoint report-uri:**
+- [ ] Sentry CSP endpoint (z DSN projektu)
+- [ ] Własny `/api/csp-report` endpoint
+- [ ] Brak (usuń dyrektywę report-uri z CSP)

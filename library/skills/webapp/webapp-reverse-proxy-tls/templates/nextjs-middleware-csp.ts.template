@@ -1,0 +1,170 @@
+/**
+ * Next.js 14 App Router — middleware.ts
+ * Skill: webapp-reverse-proxy-tls v1.0.0
+ * Zasada #15 CLAUDE.md pkt 10 — CSP headers konkretne
+ *
+ * Placeholders do sed-replace (lub wypełnij ręcznie):
+ *   {{CSP_SCRIPT_SOURCES}}  — dodatkowe script-src (np. 'https://browser.sentry-cdn.com')
+ *   {{CSP_STYLE_SOURCES}}   — dodatkowe style-src (np. 'https://fonts.googleapis.com')
+ *   {{CSP_IMG_SOURCES}}     — dodatkowe img-src (np. 'https://cdn.example.com')
+ *   {{CSP_CONNECT_SOURCES}} — dodatkowe connect-src (np. 'https://sentry.io')
+ *   {{CSP_REPORT_URI}}      — CSP violations endpoint (usuń linię jeśli brak)
+ *
+ * Umieść ten plik jako: src/middleware.ts (lub middleware.ts w root projektu)
+ */
+
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+
+// ---------------------------------------------------------------------------
+// CSP configuration
+// Edytuj ADDITIONAL_* tablice per projekt — nie hardcode tutaj domen 3rd-party
+// bez dodania ich do placeholderów i placeholders-reference.md
+// ---------------------------------------------------------------------------
+const ADDITIONAL_SCRIPT_SOURCES = '{{CSP_SCRIPT_SOURCES}}'
+const ADDITIONAL_STYLE_SOURCES = '{{CSP_STYLE_SOURCES}}'
+const ADDITIONAL_IMG_SOURCES = '{{CSP_IMG_SOURCES}}'
+const ADDITIONAL_CONNECT_SOURCES = '{{CSP_CONNECT_SOURCES}}'
+const CSP_REPORT_URI = '{{CSP_REPORT_URI}}'
+
+function buildCsp(nonce: string, isDev: boolean): string {
+  if (isDev) {
+    // Dev: relaxed policy — hot reload wymaga 'unsafe-inline' + 'unsafe-eval'
+    return [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: blob:",
+      "connect-src 'self' ws: wss:",
+      "font-src 'self' data:",
+      "object-src 'none'",
+    ].join('; ')
+  }
+
+  // Production: nonce-based + strict-dynamic
+  // 'strict-dynamic' pozwala Next.js lazy chunks ładować kolejne skrypty
+  const scriptSrc = [
+    `'nonce-${nonce}'`,
+    "'strict-dynamic'",
+    ADDITIONAL_SCRIPT_SOURCES,
+  ]
+    .filter(Boolean)
+    .join(' ')
+
+  const styleSrc = [
+    "'self'",
+    // 'unsafe-inline' wymagane dla Tailwind CSS inline styles
+    // NIE jest krytyczne bezpieczeństwowo (CSS XSS ≠ JS XSS)
+    "'unsafe-inline'",
+    ADDITIONAL_STYLE_SOURCES,
+  ]
+    .filter(Boolean)
+    .join(' ')
+
+  const imgSrc = [
+    "'self'",
+    'data:',
+    'blob:',
+    ADDITIONAL_IMG_SOURCES,
+  ]
+    .filter(Boolean)
+    .join(' ')
+
+  const connectSrc = [
+    "'self'",
+    ADDITIONAL_CONNECT_SOURCES,
+  ]
+    .filter(Boolean)
+    .join(' ')
+
+  const directives = [
+    "default-src 'self'",
+    `script-src ${scriptSrc}`,
+    `style-src ${styleSrc}`,
+    `img-src ${imgSrc}`,
+    "font-src 'self' data:",
+    `connect-src ${connectSrc}`,
+    "media-src 'none'",
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "object-src 'none'",
+    'upgrade-insecure-requests',
+  ]
+
+  if (CSP_REPORT_URI && !CSP_REPORT_URI.startsWith('{{')) {
+    directives.push(`report-uri ${CSP_REPORT_URI}`)
+  }
+
+  return directives.join('; ')
+}
+
+export function middleware(request: NextRequest) {
+  const isDev = process.env.NODE_ENV !== 'production'
+
+  // Generuj nonce per-request (kryptograficznie bezpieczny)
+  const nonce = Buffer.from(crypto.randomUUID).toString('base64')
+
+  const csp = buildCsp(nonce, isDev)
+
+  const requestHeaders = new Headers(request.headers)
+  // Przekaż nonce do Next.js (dostępny jako header w Server Components)
+  requestHeaders.set('x-nonce', nonce)
+  requestHeaders.set(
+    isDev ? 'Content-Security-Policy-Report-Only' : 'Content-Security-Policy',
+    csp
+  )
+
+  const response = NextResponse.next({
+    request: { headers: requestHeaders },
+  })
+
+  // Ustaw CSP w response headers
+  response.headers.set(
+    isDev ? 'Content-Security-Policy-Report-Only' : 'Content-Security-Policy',
+    csp
+  )
+
+  // ---------------------------------------------------------------------------
+  // Security headers — zasada #15 pkt 10
+  // ---------------------------------------------------------------------------
+
+  // HSTS — tylko na prod (HTTPS), na dev powoduje blokadę HTTP
+  if (!isDev) {
+    response.headers.set(
+      'Strict-Transport-Security',
+      'max-age=31536000; includeSubDomains; preload'
+    )
+  }
+
+  // Clickjacking protection
+  response.headers.set('X-Frame-Options', 'DENY')
+
+  // MIME sniffing protection
+  response.headers.set('X-Content-Type-Options', 'nosniff')
+
+  // Referrer — nie wyciekaj path do zewnętrznych domen
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+
+  // Permissions Policy — ogranicz API przeglądarki
+  response.headers.set(
+    'Permissions-Policy',
+    'camera=, microphone=, geolocation=, payment=, usb=, interest-cohort='
+  )
+
+  return response
+}
+
+// Matcher: uruchom middleware na wszystkich route'ach poza plikami statycznymi
+export const config = {
+  matcher: [
+    /*
+     * Match all request paths EXCEPT:
+     * - _next/static (static files)
+     * - _next/image (image optimization)
+     * - favicon.ico, sitemap.xml, robots.txt
+     * - Public assets (images, fonts)
+     */
+    '/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|.*\\.(?:png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$).*)',
+  ],
+}

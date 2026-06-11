@@ -1,0 +1,110 @@
+/**
+ * Next.js Middleware — session check + TOTP enforcement
+ * single-user-auth-pl v2.0.0 — iron-session 8
+ *
+ * Uwaga: iron-session działa na Node.js runtime, NIE Edge Runtime.
+ * Ustaw runtime explicite jeśli wymagany Edge → migruj do własnego JWT.
+ *
+ * Placeholders:
+ *   {{COOKIE_NAME}} — prefix cookie (env.COOKIE_NAME)
+ *
+ * Co robi ten middleware:
+ *   1. Sprawdza czy sesja iron-session jest aktywna (userId present)
+ *   2. Odświeża lastActivity przy każdym żądaniu (sliding window 8h)
+ *   3. Jeśli TOTP_REQUIRED=true i totpVerified=false → redirect /login/totp
+ *   4. Blokuje dostęp do protected routes bez sesji → redirect /login
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import { getIronSession } from "iron-session";
+import type { SessionData } from "@/lib/session";
+import { sessionOptions, env } from "@/lib/session";
+
+// ─── Trasy publiczne (nie wymagają sesji) ────────────────────────────────
+const PUBLIC_PATHS = [
+  "/login",
+  "/login/totp",     // TOTP verification page
+  "/api/health",     // liveness check (NIE chronimy — monitoring zewnętrzny)
+  "/api/ready",      // readiness check
+  "/api/version",    // build info
+  "/_next",          // Next.js internals
+  "/favicon.ico",
+];
+
+// ─── Trasy wymagające weryfikacji TOTP (gdy TOTP_REQUIRED=true) ───────────
+// Uwaga: gdy TOTP_REQUIRED=false, middleware pomija tę listę
+const TOTP_PROTECTED_PATHS = [
+  "/dashboard",
+  "/offers",
+  "/settings",
+  "/api/offers",
+  "/api/pdf",
+  "/api/rodo",
+];
+
+// ─── Middleware ───────────────────────────────────────────────────────────
+
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // Pomijaj publiczne ścieżki
+  if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
+    return NextResponse.next;
+  }
+
+  // Pobierz sesję z cookie (iron-session deszyfruje cookie)
+  const response = NextResponse.next;
+  const session = await getIronSession<SessionData>(request, response, sessionOptions);
+
+  // ─── Sprawdź czy zalogowany ───────────────────────────────────────────
+  if (!session.userId) {
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("from", pathname); // zapamiętaj skąd przyszedł
+    return NextResponse.redirect(loginUrl);
+  }
+
+  // ─── Sprawdź idle timeout ─────────────────────────────────────────────
+  const MAX_IDLE_MS = 60 * 60 * 8 * 1000; // 8h
+  if (session.lastActivity && Date.now - session.lastActivity > MAX_IDLE_MS) {
+    // Sesja wygasła przez idle — wyczyść i przekieruj
+    await session.destroy;
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("reason", "session_expired");
+    return NextResponse.redirect(loginUrl);
+  }
+
+  // ─── TOTP enforcement (gdy feature flag włączony) ────────────────────
+  if (
+    env.TOTP_REQUIRED &&
+    !session.totpVerified &&
+    TOTP_PROTECTED_PATHS.some((p) => pathname.startsWith(p))
+  ) {
+    const totpUrl = new URL("/login/totp", request.url);
+    return NextResponse.redirect(totpUrl);
+  }
+
+  // ─── Odśwież lastActivity (sliding window) ───────────────────────────
+  session.lastActivity = Date.now;
+  await session.save;
+
+  // Dodaj userId do headers dla Server Components (opcjonalnie)
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-user-id", session.userId);
+
+  return NextResponse.next({
+    request: { headers: requestHeaders },
+  });
+}
+
+// ─── Matcher — które ścieżki obsługuje middleware ─────────────────────────
+export const config = {
+  matcher: [
+    /*
+     * Dopasuj wszystko oprócz:
+     * - _next/static (pliki statyczne Next.js)
+     * - _next/image (image optimization)
+     * - favicon.ico
+     */
+    "/((?!_next/static|_next/image|favicon.ico).*)",
+  ],
+};

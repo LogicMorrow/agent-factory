@@ -1,0 +1,40 @@
+WEBVTT
+Kind: captions
+Language: pl
+
+NOTE
+Szablon napisów PL dla wideo hero/case-study portfolio operatora.
+Generowanie: Whisper API (auto-transcribe) → polish-proofreader proofread → manual review.
+Konwencje:
+- Max 42 znaki na linię
+- Max 2 linie per cue
+- Czas cue 1-7s
+- Bez identyfikacji mówcy (single speaker)
+- Brak inline tagów <v operator> (single speaker)
+- Sylable timing: PL ~3-4 syl/s normal, ~4-5 syl/s szybka mowa
+
+00:00:00.000 --> 00:00:03.500
+Cześć, jestem operator Nowak.
+
+00:00:03.500 --> 00:00:08.000
+Buduję agenty AI i automatyzuję
+sprzedaż B2B.
+
+00:00:08.000 --> 00:00:13.500
+W tym wideo pokażę 3 obszary:
+analitykę, cold mailing, AI engineering.
+
+00:00:13.500 --> 00:00:18.000
+Każdy z tych projektów to mix kodu,
+analizy danych i kontaktu z klientem.
+
+00:00:18.000 --> 00:00:23.000
+Jeśli szukasz wykonawcy na projekt
+albo full-time AI engineera —
+
+00:00:23.000 --> 00:00:27.000
+napisz na you@example.com
+lub kliknij CTA poniżej.
+
+00:00:27.000 --> 00:00:30.000
+Do zobaczenia w sekcji „Co robię".

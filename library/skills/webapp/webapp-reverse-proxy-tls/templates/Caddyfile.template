@@ -1,0 +1,137 @@
+# Caddyfile — Production
+# Skill: webapp-reverse-proxy-tls v1.0.0
+# Zasada #15 CLAUDE.md pkt 9
+#
+# Placeholders do sed-replace:
+#   {{PROD_DOMAIN}}   — domena prod (np. demoapp.pl)
+#   {{ADMIN_EMAIL}}   — email Let's Encrypt (np. you@example.com)
+#   {{APP_PORT}}      — port aplikacji w sieci Docker (np. 3020)
+#   {{STAGING_DOMAIN}} — domena staging (np. staging.demoapp.pl) — usuń blok jeśli brak
+#   {{CSP_SCRIPT_SOURCES}} — dodatkowe script-src (np. https://browser.sentry-cdn.com)
+#   {{CSP_STYLE_SOURCES}}  — dodatkowe style-src (np. https://fonts.googleapis.com)
+#   {{CSP_IMG_SOURCES}}    — dodatkowe img-src (np. https://img.demoapp.pl)
+#   {{CSP_CONNECT_SOURCES}} — dodatkowe connect-src (np. https://sentry.io)
+#   {{CSP_REPORT_URI}}     — endpoint CSP violations (opcjonalne, usuń dyrektywę jeśli brak)
+#
+# Weryfikacja po sed-replace:
+#   grep '{{' Caddyfile   # wynik pusty = OK
+
+# Globalny email Let's Encrypt (wymagany dla auto-TLS)
+{
+	email {{ADMIN_EMAIL}}
+	# Staging ACME do testów (odkomentuj aby unikać rate limit Let's Encrypt)
+	# acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
+}
+
+# www → apex redirect
+www.{{PROD_DOMAIN}} {
+	redir https://{{PROD_DOMAIN}}{uri} permanent
+}
+
+# Production — główny host
+{{PROD_DOMAIN}} {
+	# Auto-TLS Let's Encrypt — Caddy zarządza certyfikatem automatycznie
+	tls {{ADMIN_EMAIL}}
+
+	# -----------------------------------------------------------------------
+	# Security headers — zasada #15 pkt 10
+	# -----------------------------------------------------------------------
+	header {
+		# HSTS — max-age 1 rok + subdomeny + preload list
+		# WAŻNE: preload wymaga includeSubDomains. Przed dodaniem do preload list
+		# upewnij się że WSZYSTKIE subdomeny obsługują HTTPS.
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+
+		# Clickjacking protection
+		X-Frame-Options "DENY"
+
+		# MIME type sniffing protection
+		X-Content-Type-Options "nosniff"
+
+		# Referrer — nie wyciekaj URL do zewnętrznych domen
+		Referrer-Policy "strict-origin-when-cross-origin"
+
+		# Permissions Policy — ogranicz API przeglądarki
+		Permissions-Policy "camera=, microphone=, geolocation=, payment=, usb=, interest-cohort="
+
+		# Content Security Policy
+		# UWAGA: script-src bez 'unsafe-eval' i 'unsafe-inline' (nonce-based via Next.js middleware)
+		# Next.js middleware.ts ustawia nonce per-request — Caddy daje fallback policy
+		# Jeśli używasz Next.js middleware (zalecane), ten header jest nadpisywany przez app.
+		# Zostaw jako hardened fallback dla endpointów poza Next.js (np. Caddy error pages).
+		Content-Security-Policy "default-src 'self'; script-src 'self' {{CSP_SCRIPT_SOURCES}}; style-src 'self' 'unsafe-inline' {{CSP_STYLE_SOURCES}}; img-src 'self' data: blob: {{CSP_IMG_SOURCES}}; font-src 'self' data:; connect-src 'self' {{CSP_CONNECT_SOURCES}}; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests; report-uri {{CSP_REPORT_URI}}"
+
+		# Usuń server version (ukryj Caddy/Go)
+		-Server
+	}
+
+	# -----------------------------------------------------------------------
+	# Rate limiting — zasada #15 pkt 10
+	# Wymagany plugin caddy-ratelimit (ghcr.io/mholt/caddy-ratelimit)
+	# Jeśli plugin niedostępny → rate limiting przeniesiony do Hono middleware
+	# -----------------------------------------------------------------------
+	# rate_limit {
+	#   zone global_per_ip {
+	#     key {remote_host}
+	#     events 1000
+	#     window 1m
+	#   }
+	# }
+	#
+	# ALTERNATYWA (produkcja): Hono rate-limiter w rate-limit-hono.ts.template
+	# pokrywa login (5/15min) + PDF (30/hour) + API (100/min) — preferowane.
+	# Caddy-level rate limit = dodatkowa warstwa obrony przed DDoS volumetric.
+
+	# -----------------------------------------------------------------------
+	# Reverse proxy do aplikacji Next.js
+	# -----------------------------------------------------------------------
+	reverse_proxy app:{{APP_PORT}} {
+		# Healthcheck — Caddy przestaje routować gdy backend unhealthy
+		health_uri /api/health
+		health_interval 30s
+		health_timeout 5s
+		health_status 200
+
+		# Przekazuj oryginalne IP klienta (dla rate limiting w Hono)
+		header_up X-Real-IP {remote_host}
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Proto {scheme}
+	}
+
+	# -----------------------------------------------------------------------
+	# Logging — stdout (Docker logs grabbeable)
+	# -----------------------------------------------------------------------
+	log {
+		output stdout
+		format json
+		level INFO
+	}
+}
+
+# -----------------------------------------------------------------------
+# Staging host (opcjonalne — usuń blok jeśli brak)
+# -----------------------------------------------------------------------
+{{STAGING_DOMAIN}} {
+	tls {{ADMIN_EMAIL}}
+
+	# Mniej restrykcyjne headers na staging (no preload, no report-uri)
+	header {
+		Strict-Transport-Security "max-age=86400; includeSubDomains"
+		X-Frame-Options "DENY"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	reverse_proxy app:{{APP_PORT}} {
+		health_uri /api/health
+		health_interval 30s
+		health_status 200
+	}
+
+	log {
+		output stdout
+		format json
+		level DEBUG
+	}
+}

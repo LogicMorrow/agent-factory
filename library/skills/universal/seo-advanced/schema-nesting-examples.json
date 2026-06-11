@@ -1,0 +1,151 @@
+{
+  "_comment": "Plik pomocniczy seo-advanced — ready-to-use schema nesting examples. Waliduj kazdy snippet w Google Rich Results Test przed wdrozeniem produkcyjnym.",
+  "_validator": "https://search.google.com/test/rich-results",
+
+  "article_nested_author_publisher": {
+    "_comment": "Article z embedded Author (Person + PIIB credentials) + Publisher (Organization + logo). Glowny schemat dla blog posts / poradnikow branzy budowlanej.",
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "{{HEADLINE}}",
+    "image": {
+      "@type": "ImageObject",
+      "url": "{{IMAGE_URL}}",
+      "width": 1200,
+      "height": 630
+    },
+    "author": {
+      "@type": "Person",
+      "name": "{{AUTHOR_NAME}}",
+      "url": "{{AUTHOR_PROFILE_URL}}",
+      "sameAs": ["{{LINKEDIN_URL}}", "{{PIIB_PROFILE_URL}}"],
+      "jobTitle": "{{JOB_TITLE}}",
+      "hasCredential": "{{CREDENTIAL_STRING}}"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "{{ORG_NAME}}",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "{{LOGO_URL}}",
+        "width": 600,
+        "height": 60
+      }
+    },
+    "datePublished": "{{DATE_PUBLISHED}}",
+    "dateModified": "{{DATE_MODIFIED}}"
+  },
+
+  "faqpage_nested_qa": {
+    "_comment": "FAQPage z Question/Answer. Wymagany per pytanie. Odpowiedz 40-80 slow (Featured Snippet). Nie stackuj z FAQPage z seo-fundamentals — jeden @type FAQPage per strona.",
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "{{QUESTION_1}}",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "{{ANSWER_1_40_80_WORDS}}"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "{{QUESTION_2}}",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "{{ANSWER_2_40_80_WORDS}}"
+        }
+      }
+    ]
+  },
+
+  "howto_step_by_step": {
+    "_comment": "HowTo z HowToStep. Dobry dla 'jak zaplanowac budowe domu', 'jak zlozyc pozwolenie'. Google pokazuje steps jako rich result w SERP.",
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    "name": "{{HOWTO_TITLE}}",
+    "totalTime": "{{ISO_8601_DURATION}}",
+    "step": [
+      {
+        "@type": "HowToStep",
+        "position": 1,
+        "name": "{{STEP_1_NAME}}",
+        "text": "{{STEP_1_TEXT}}",
+        "image": "{{STEP_1_IMAGE_URL}}"
+      },
+      {
+        "@type": "HowToStep",
+        "position": 2,
+        "name": "{{STEP_2_NAME}}",
+        "text": "{{STEP_2_TEXT}}",
+        "image": "{{STEP_2_IMAGE_URL}}"
+      }
+    ]
+  },
+
+  "service_with_aggregate_rating": {
+    "_comment": "Service + AggregateRating. TYLKO prawdziwe opinie — fake rating = manual penalty. reviewCount musi byc zgodny z rzeczywista liczba recenzji.",
+    "@context": "https://schema.org",
+    "@type": "Service",
+    "name": "{{SERVICE_NAME}}",
+    "provider": {
+      "@type": "Organization",
+      "name": "{{ORG_NAME}}",
+      "url": "{{ORG_URL}}"
+    },
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "{{RATING_VALUE}}",
+      "bestRating": "5",
+      "worstRating": "1",
+      "reviewCount": "{{REVIEW_COUNT}}"
+    }
+  },
+
+  "breadcrumblist_nested": {
+    "_comment": "BreadcrumbList nested dla spoke pages. Musi byc zgodny z wizualnym breadcrumb na stronie.",
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Strona glowna",
+        "item": "https://{{DOMAIN}}"
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "{{CATEGORY_NAME}}",
+        "item": "https://{{DOMAIN}}/{{CATEGORY_SLUG}}"
+      },
+      {
+        "@type": "ListItem",
+        "position": 3,
+        "name": "{{PAGE_NAME}}",
+        "item": "https://{{DOMAIN}}/{{CATEGORY_SLUG}}/{{PAGE_SLUG}}"
+      }
+    ]
+  },
+
+  "_placeholders": {
+    "{{HEADLINE}}": "Tytul artykulu (max 110 znakow dla schema)",
+    "{{IMAGE_URL}}": "URL obrazu 1200x630px (OG image = Article image)",
+    "{{AUTHOR_NAME}}": "Imie i Nazwisko autora (prawdziwe)",
+    "{{AUTHOR_PROFILE_URL}}": "URL strony /o-autorze/imie-nazwisko",
+    "{{LINKEDIN_URL}}": "https://linkedin.com/in/profil-autora",
+    "{{PIIB_PROFILE_URL}}": "URL profilu w rejestrze PIIB (lub innym rejestrze branzy)",
+    "{{JOB_TITLE}}": "np. 'Kierownik budowy', 'Lekarz specjalista ortopedii'",
+    "{{CREDENTIAL_STRING}}": "np. 'Uprawnienia budowlane PIIB nr LBOIIB/BO/0123/15'",
+    "{{ORG_NAME}}": "Nazwa firmy",
+    "{{LOGO_URL}}": "URL logo (PNG, biale tlo, min 112px wysokosc)",
+    "{{DATE_PUBLISHED}}": "ISO 8601: 2026-05-11",
+    "{{DATE_MODIFIED}}": "ISO 8601: data ostatniej aktualizacji artykulu",
+    "{{SERVICE_NAME}}": "np. 'Budowa domu jednorodzinnego'",
+    "{{ORG_URL}}": "https://domain.pl",
+    "{{RATING_VALUE}}": "np. '4.8' (decimal string)",
+    "{{REVIEW_COUNT}}": "liczba recenzji (integer string, prawdziwa)",
+    "{{ISO_8601_DURATION}}": "np. 'PT30M' (30 minut), 'P1D' (1 dzien), 'P2W' (2 tygodnie)",
+    "{{DOMAIN}}": "domain.pl (bez https://)"
+  }
+}

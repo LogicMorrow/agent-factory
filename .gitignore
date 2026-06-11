@@ -1,0 +1,23 @@
+# Local Claude Code state
+.claude/settings.local.json
+.claude/memory/
+*.local.json
+
+# Secrets / env
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# Logs / scratch
+*.log
+/tmp/
+node_modules/

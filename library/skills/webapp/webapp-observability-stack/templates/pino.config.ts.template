@@ -1,0 +1,132 @@
+/**
+ * pino.config.ts — Structured logger for {{PROJECT_NAME}}
+ * Stack: Next.js 14.2 LTS, pino 9+, pino-http, pino-redact
+ * Outputs JSON to stdout — grabbeable by Docker logs, Loki v2
+ *
+ * Install: pnpm add pino pino-http pino-redact
+ * Usage:   import { logger, withRequestLogger } from '@/lib/logger'
+ */
+
+import pino from 'pino'
+import type { IncomingMessage, ServerResponse } from 'http'
+
+// ─── PII Redaction paths ────────────────────────────────────────────────────
+// pino-redact replaces these with '[Redacted]' before writing to stdout.
+// Paths are case-sensitive — add variants if needed.
+const REDACT_PATHS = [
+  'req.headers.authorization',
+  'req.headers.cookie',
+  'req.headers["x-api-key"]',
+  'req.body.password',
+  'req.body.token',
+  'req.body.refreshToken',
+  'req.body.email',
+  'req.body.phone',
+  'req.body.telefon',
+  'req.body.nazwisko',
+  'req.body.adres',
+  'req.body.nip',
+  '*.password',
+  '*.token',
+  '*.secret',
+]
+
+// ─── Base logger ────────────────────────────────────────────────────────────
+export const logger = pino({
+  level: process.env.LOG_LEVEL ?? 'info',
+  // Pretty-print in dev, JSON in production
+  ...(process.env.NODE_ENV !== 'production'
+    ? { transport: { target: 'pino-pretty', options: { colorize: true } } }
+    : {}),
+  redact: {
+    paths: REDACT_PATHS,
+    censor: '[Redacted]',
+  },
+  base: {
+    app: '{{PROJECT_NAME}}',
+    env: process.env.NODE_ENV,
+    version: process.env.NEXT_PUBLIC_APP_VERSION ?? 'unknown',
+  },
+  timestamp: pino.stdTimeFunctions.isoTime,
+})
+
+// ─── Request correlation (async context) ────────────────────────────────────
+import { AsyncLocalStorage } from 'async_hooks'
+
+type RequestContext = {
+  requestId: string
+  method?: string
+  path?: string
+}
+
+const requestContext = new AsyncLocalStorage<RequestContext>
+
+export function getRequestContext: RequestContext | undefined {
+  return requestContext.getStore
+}
+
+export function runWithRequestContext<T>(
+  ctx: RequestContext,
+  fn:  => T
+): T {
+  return requestContext.run(ctx, fn)
+}
+
+// ─── Child logger with request context ──────────────────────────────────────
+export function getLogger(extra?: Record<string, unknown>) {
+  const ctx = getRequestContext
+  return logger.child({
+    requestId: ctx?.requestId,
+    ...extra,
+  })
+}
+
+// ─── Request logger middleware (Next.js Route Handlers) ─────────────────────
+// Usage in route.ts:
+//   export async function GET(req: Request) {
+//     return withRequestLogger(req, async (log) => {
+//       log.info('handling GET')
+//       ...
+//     })
+//   }
+export async function withRequestLogger<T>(
+  req: Request,
+  handler: (log: ReturnType<typeof logger.child>) => Promise<T>
+): Promise<T> {
+  const requestId =
+    req.headers.get('x-request-id') ?? crypto.randomUUID
+  const start = Date.now
+  const log = logger.child({
+    requestId,
+    method: req.method,
+    url: req.url,
+  })
+
+  try {
+    const result = await handler(log)
+    log.info({ latencyMs: Date.now - start }, 'request completed')
+    return result
+  } catch (err) {
+    log.error(
+      { err, latencyMs: Date.now - start },
+      'request failed'
+    )
+    throw err
+  }
+}
+
+// ─── Error logger with stack trace ──────────────────────────────────────────
+export function logError(
+  err: unknown,
+  context?: Record<string, unknown>
+): void {
+  const log = getLogger(context)
+  if (err instanceof Error) {
+    log.error(
+      { err: { message: err.message, stack: err.stack, name: err.name } },
+      'unhandled error'
+    )
+  } else {
+    log.error({ err }, 'unhandled non-Error thrown')
+  }
+}

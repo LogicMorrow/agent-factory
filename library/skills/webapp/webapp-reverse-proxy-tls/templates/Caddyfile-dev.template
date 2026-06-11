@@ -1,0 +1,56 @@
+# Caddyfile — Development (localhost, no TLS)
+# Skill: webapp-reverse-proxy-tls v1.0.0
+#
+# Używaj lokalnie razem z compose.yml (dev).
+# NIE używaj na VPS produkcyjnym.
+#
+# Placeholders do sed-replace:
+#   {{APP_PORT}} — port aplikacji Next.js (np. 3020)
+#
+# Weryfikacja:
+#   grep '{{' Caddyfile   # wynik pusty = OK
+
+{
+	# Dev: wyłącz auto-HTTPS (nie potrzebujemy TLS na localhost)
+	auto_https off
+	# Admin API na innym porcie (unikaj konfliktu)
+	admin localhost:2020
+}
+
+# Lokalny host dev
+localhost:80 {
+	# Relaxed headers na dev — nie blokuje hot reload / React DevTools
+	header {
+		# Bez HSTS (resetuje się przy powrocie do dev HTTP)
+		# X-Frame-Options dla bezpieczeństwa nawet w dev
+		X-Frame-Options "SAMEORIGIN"
+		X-Content-Type-Options "nosniff"
+		# CSP relaxed — 'unsafe-inline' akceptowalne w dev (hot reload wymaga)
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' ws: wss:; font-src 'self' data:; object-src 'none'"
+		-Server
+	}
+
+	# Reverse proxy → Next.js dev server
+	reverse_proxy app:{{APP_PORT}} {
+		# Timeout wyższy — Next.js dev może wolno kompilować
+		transport http {
+			response_header_timeout 60s
+		}
+
+		# WebSocket dla Next.js HMR (hot module reload)
+		header_up Connection "upgrade"
+		header_up Upgrade {http.request.header.Upgrade}
+	}
+
+	# Logging verbose w dev
+	log {
+		output stdout
+		format console
+		level DEBUG
+	}
+}
+
+# Alias: :80 → localhost dla wygody (curl http://localhost)
+:80 {
+	redir http://localhost:80{uri}
+}

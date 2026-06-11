@@ -1,0 +1,228 @@
+/**
+ * Hono Rate Limiting Middleware
+ * Skill: webapp-reverse-proxy-tls v1.0.0
+ * Zasada #15 CLAUDE.md pkt 10 — rate limiting konkretny
+ *
+ * Stack: Hono 4.7 + hono-rate-limiter (lub custom in-memory store)
+ * Używany przez: endpointy Next.js Route Handlers (via Hono adapter)
+ *
+ * Limity (zatwierdzony brief ):
+ *   Login:     5 prób / 15 minut per IP  (brute-force protection)
+ *   PDF gen:  30 generowań / godzinę per user (resource protection)
+ *   API glob: 100 requestów / minutę per IP (DDoS layer 2)
+ *
+ * Placeholders do podmienienia:
+ *   {{RATE_LIMIT_LOGIN}}  — próby logowania/15min (default: 5)
+ *   {{RATE_LIMIT_PDF}}    — generowania PDF/hour (default: 30)
+ *   {{RATE_LIMIT_GLOBAL}} — requesty/min per IP (default: 100)
+ *
+ * Umieść jako: src/lib/rate-limit.ts
+ * Importuj w: src/app/api/auth/[...auth]/route.ts, src/app/api/pdf/route.ts
+ */
+
+import { Hono } from 'hono'
+
+// ---------------------------------------------------------------------------
+// In-memory store (single-instance)
+// Dla multi-instance (wiele kontenerów): podmień na Redis store
+// ---------------------------------------------------------------------------
+interface RateLimitEntry {
+  count: number
+  resetAt: number
+}
+
+const stores = new Map<string, Map<string, RateLimitEntry>>
+
+function getStore(namespace: string): Map<string, RateLimitEntry> {
+  if (!stores.has(namespace)) {
+    stores.set(namespace, new Map)
+  }
+  return stores.get(namespace)!
+}
+
+// ---------------------------------------------------------------------------
+// Core rate limiting function
+// ---------------------------------------------------------------------------
+interface RateLimitConfig {
+  namespace: string
+  max: number
+  windowMs: number
+  keyFn: (c: { req: { header: (h: string) => string | undefined } }) => string
+}
+
+function rateLimitMiddleware(config: RateLimitConfig) {
+  const { namespace, max, windowMs, keyFn } = config
+  const store = getStore(namespace)
+
+  return async (
+    c: Parameters<typeof keyFn>[0],
+    next:  => Promise<void>
+  ) => {
+    const key = keyFn(c)
+    const now = Date.now
+
+    // Pobierz lub inicjalizuj entry
+    let entry = store.get(key)
+
+    if (!entry || now > entry.resetAt) {
+      entry = { count: 0, resetAt: now + windowMs }
+      store.set(key, entry)
+    }
+
+    entry.count += 1
+
+    const remaining = Math.max(0, max - entry.count)
+    const resetIn = Math.ceil((entry.resetAt - now) / 1000)
+
+    // Ustaw rate limit headers (RFC 6585)
+    if ('header' in (c as object) && typeof (c as { header?: unknown }).header === 'function') {
+      const ctx = c as { header: (k: string, v: string) => void }
+      ctx.header('X-RateLimit-Limit', String(max))
+      ctx.header('X-RateLimit-Remaining', String(remaining))
+      ctx.header('X-RateLimit-Reset', String(Math.floor(entry.resetAt / 1000)))
+    }
+
+    if (entry.count > max) {
+      const ctx = c as {
+        header: (k: string, v: string) => void
+        json: (body: unknown, status: number) => Response
+      }
+      ctx.header('Retry-After', String(resetIn))
+      return ctx.json(
+        {
+          error: 'Too Many Requests',
+          message: `Rate limit exceeded. Try again in ${resetIn} seconds.`,
+          retryAfter: resetIn,
+        },
+        429
+      )
+    }
+
+    await next
+  }
+}
+
+// ---------------------------------------------------------------------------
+// IP extraction helper (za Caddy/Nginx proxy)
+// ---------------------------------------------------------------------------
+function getClientIp(c: { req: { header: (h: string) => string | undefined } }): string {
+  // Caddy ustawia X-Real-IP (z Caddyfile.template: header_up X-Real-IP {remote_host})
+  return (
+    c.req.header('x-real-ip') ??
+    c.req.header('x-forwarded-for')?.split(',')[0]?.trim ??
+    'unknown'
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Limity (podmień przez sed-replace lub ręcznie)
+// ---------------------------------------------------------------------------
+const RATE_LIMIT_LOGIN = parseInt('{{RATE_LIMIT_LOGIN}}' || '5', 10)
+const RATE_LIMIT_PDF = parseInt('{{RATE_LIMIT_PDF}}' || '30', 10)
+const RATE_LIMIT_GLOBAL = parseInt('{{RATE_LIMIT_GLOBAL}}' || '100', 10)
+
+// ---------------------------------------------------------------------------
+// Eksportowane middleware
+// ---------------------------------------------------------------------------
+
+/**
+ * Login rate limit: {{RATE_LIMIT_LOGIN}} prób / 15 minut per IP
+ * Chroni przed brute-force atakami na endpoint logowania.
+ *
+ * Użycie: w src/app/api/auth/login/route.ts
+ *   import { loginRateLimit } from '@/lib/rate-limit'
+ *   export const POST = loginRateLimit(handler)
+ */
+export const loginRateLimitMiddleware = rateLimitMiddleware({
+  namespace: 'login',
+  max: RATE_LIMIT_LOGIN,
+  windowMs: 15 * 60 * 1000, // 15 minut
+  keyFn: getClientIp,
+})
+
+/**
+ * PDF generation rate limit: {{RATE_LIMIT_PDF}} generowań / godzinę per user
+ * Chroni zasoby serwera (PDF generation jest CPU-intensive).
+ *
+ * Użycie: w src/app/api/pdf/generate/route.ts
+ *   import { pdfRateLimit } from '@/lib/rate-limit'
+ */
+export const pdfRateLimitMiddleware = rateLimitMiddleware({
+  namespace: 'pdf',
+  max: RATE_LIMIT_PDF,
+  windowMs: 60 * 60 * 1000, // 1 godzina
+  // Per user (session-based) lub fallback per IP
+  keyFn: (c) => {
+    // TODO: podmień na session user ID gdy auth gotowy
+    // const userId = getSessionUserId(c)
+    // return userId ?? getClientIp(c)
+    return getClientIp(c)
+  },
+})
+
+/**
+ * Global API rate limit: {{RATE_LIMIT_GLOBAL}} requestów / minutę per IP
+ * Ogólna ochrona API przed nadużyciami.
+ *
+ * Użycie: Hono app.use('*', globalApiRateLimit)
+ */
+export const globalApiRateLimitMiddleware = rateLimitMiddleware({
+  namespace: 'global-api',
+  max: RATE_LIMIT_GLOBAL,
+  windowMs: 60 * 1000, // 1 minuta
+  keyFn: getClientIp,
+})
+
+// ---------------------------------------------------------------------------
+// Helper: wrapper dla Next.js Route Handlers
+// ---------------------------------------------------------------------------
+type NextHandler = (req: Request) => Promise<Response>
+
+export function withLoginRateLimit(handler: NextHandler): NextHandler {
+  return async (req: Request) => {
+    const fakeHonoCtx = {
+      req: {
+        header: (h: string) => req.headers.get(h) ?? undefined,
+      },
+      header: (_k: string, _v: string) => {},
+      json: (body: unknown, status: number) =>
+        new Response(JSON.stringify(body), {
+          status,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+    }
+
+    let rateLimitResponse: Response | null = null
+
+    await loginRateLimitMiddleware(fakeHonoCtx, async  => {
+      rateLimitResponse = null
+    })
+
+    if (rateLimitResponse) return rateLimitResponse
+    return handler(req)
+  }
+}
+
+// Analogiczny wrapper dla PDF rate limit
+export function withPdfRateLimit(handler: NextHandler): NextHandler {
+  return async (req: Request) => {
+    const fakeHonoCtx = {
+      req: { header: (h: string) => req.headers.get(h) ?? undefined },
+      header: (_k: string, _v: string) => {},
+      json: (body: unknown, status: number) =>
+        new Response(JSON.stringify(body), {
+          status,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+    }
+
+    let rateLimitResponse: Response | null = null
+
+    await pdfRateLimitMiddleware(fakeHonoCtx, async  => {
+      rateLimitResponse = null
+    })
+
+    if (rateLimitResponse) return rateLimitResponse
+    return handler(req)
+  }
+}

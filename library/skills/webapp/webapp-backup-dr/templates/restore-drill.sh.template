@@ -1,0 +1,237 @@
+#!/usr/bin/env bash
+# restore-drill.sh — webapp-backup-dr v1.0.0
+# Monthly automated restore drill — NIE na live DB
+# Flow: download latest B2 → ephemeral pg container → pg_restore → validate → report JSON → cleanup
+# Cron: 0 4 1 * * (1-szy miesiąca 4:00, po pg-dump-cron + retention)
+# Manual: restore-drill.sh --manual [--backup-file=<path>]
+
+set -euo pipefail
+
+PROJECT_NAME="{{PROJECT_NAME}}"
+DB_NAME_SOURCE="{{DB_NAME}}"
+DB_USER_SOURCE="{{DB_USER}}"
+DB_HOST_SOURCE="${DB_HOST:-{{DB_HOST}}}"
+DB_PORT_SOURCE="${DB_PORT:-{{DB_PORT}}}"
+
+B2_BUCKET="{{B2_BUCKET}}"
+RCLONE_CONF="/etc/rclone.conf"
+
+DRILL_DB_NAME="${PROJECT_NAME}_drill_$(date +%Y%m%d%H%M%S)"
+DRILL_CONTAINER="dr-drill-${PROJECT_NAME}-$(date +%s)"
+DRILL_DIR="/tmp/drill-${DRILL_CONTAINER}"
+REPORT_FILE="${DRILL_DIR}/report.json"
+
+MANUAL_MODE=false
+BACKUP_FILE_OVERRIDE=""
+LOG_PREFIX="[restore-drill] $(date --iso-8601=seconds)"
+
+# ── Funktje ───────────────────────────────────────────────────────────────────
+log  { echo "${LOG_PREFIX} $*"; }
+die  { echo "${LOG_PREFIX} ERROR: $*" >&2; exit 1; }
+warn { echo "${LOG_PREFIX} WARN: $*"; }
+
+parse_args {
+    for arg in "$@"; do
+        case "${arg}" in
+            --manual) MANUAL_MODE=true; log "Manual mode" ;;
+            --backup-file=*) BACKUP_FILE_OVERRIDE="${arg#*=}"; log "Using backup: ${BACKUP_FILE_OVERRIDE}" ;;
+        esac
+    done
+}
+
+cleanup {
+    log "Cleanup: removing drill container ${DRILL_CONTAINER} and temp dir"
+    docker rm -f "${DRILL_CONTAINER}" 2>/dev/null || true
+    rm -rf "${DRILL_DIR}"
+}
+trap cleanup EXIT
+
+download_latest_backup {
+    mkdir -p "${DRILL_DIR}"
+
+    if [[ -n "${BACKUP_FILE_OVERRIDE}" ]]; then
+        log "Using override backup: ${BACKUP_FILE_OVERRIDE}"
+        cp "${BACKUP_FILE_OVERRIDE}" "${DRILL_DIR}/drill-backup.sql.gz"
+        return 0
+    fi
+
+    log "Fetching latest backup from B2: ${B2_BUCKET}/daily/"
+    local latest
+    latest="$(rclone lsf --config="${RCLONE_CONF}" "b2remote:${B2_BUCKET}/daily/" \
+        | grep '\.sql\.gz$' | sort -r | head -1 | tr -d ' ')"
+
+    if [[ -z "${latest}" ]]; then
+        die "No backup files found in B2 bucket ${B2_BUCKET}/daily/"
+    fi
+
+    log "Latest backup: ${latest}"
+    rclone copy \
+        --config="${RCLONE_CONF}" \
+        --retries=3 \
+        --stats=0 \
+        "b2remote:${B2_BUCKET}/daily/${latest}" \
+        "${DRILL_DIR}/"
+
+    mv "${DRILL_DIR}/${latest}" "${DRILL_DIR}/drill-backup.sql.gz"
+    log "Download complete: $(du -sh "${DRILL_DIR}/drill-backup.sql.gz" | cut -f1)"
+}
+
+start_drill_container {
+    log "Starting ephemeral PostgreSQL container: ${DRILL_CONTAINER}"
+    docker run -d \
+        --name "${DRILL_CONTAINER}" \
+        --rm=false \
+        -e POSTGRES_DB="${DRILL_DB_NAME}" \
+        -e POSTGRES_USER="${DB_USER_SOURCE}" \
+        -e POSTGRES_PASSWORD="${DB_PASSWORD}" \
+        -v "${DRILL_DIR}:/drill:ro" \
+        postgres:16-alpine
+
+    # Czekaj na gotowość
+    local retries=15
+    for i in $(seq 1 ${retries}); do
+        if docker exec "${DRILL_CONTAINER}" \
+            pg_isready -U "${DB_USER_SOURCE}" -d "${DRILL_DB_NAME}" -q 2>/dev/null; then
+            log "Drill container ready."
+            return 0
+        fi
+        log "Waiting for drill container (${i}/${retries})..."
+        sleep 3
+    done
+    die "Drill container not ready after ${retries} attempts"
+}
+
+get_source_rowcounts {
+    # Pobierz rowcount z live DB jako baseline
+    log "Fetching rowcount from source DB: ${DB_HOST_SOURCE}:${DB_PORT_SOURCE}"
+    PGPASSWORD="${DB_PASSWORD}" psql \
+        -h "${DB_HOST_SOURCE}" -p "${DB_PORT_SOURCE}" \
+        -U "${DB_USER_SOURCE}" -d "${DB_NAME_SOURCE}" \
+        -t -A \
+        -c "SELECT schemaname||'.'||tablename||':'||n_live_tup FROM pg_stat_user_tables ORDER BY 1;" \
+        2>/dev/null || echo ""
+}
+
+run_restore {
+    log "Running pg_restore into drill DB: ${DRILL_DB_NAME}"
+    # gunzip → pg_restore; --exit-on-error pro atomovost; --single-transaction
+    gunzip -c "${DRILL_DIR}/drill-backup.sql.gz" | docker exec -i "${DRILL_CONTAINER}" \
+        pg_restore \
+        --username="${DB_USER_SOURCE}" \
+        --dbname="${DRILL_DB_NAME}" \
+        --exit-on-error \
+        --single-transaction \
+        --no-privileges \
+        --no-owner \
+        2>&1 | grep -v "^$" || true
+    log "pg_restore complete"
+}
+
+validate_rowcounts {
+    local source_counts="$1"
+    log "Validating rowcounts (diff threshold <1%)..."
+
+    local drill_counts
+    drill_counts="$(docker exec "${DRILL_CONTAINER}" \
+        psql -U "${DB_USER_SOURCE}" -d "${DRILL_DB_NAME}" -t -A \
+        -c "SELECT schemaname||'.'||tablename||':'||n_live_tup FROM pg_stat_user_tables ORDER BY 1;" \
+        2>/dev/null || echo "")"
+
+    # Uruchom analyze aby zaktualizować statystyki
+    docker exec "${DRILL_CONTAINER}" \
+        psql -U "${DB_USER_SOURCE}" -d "${DRILL_DB_NAME}" \
+        -c "ANALYZE;" -q 2>/dev/null || true
+
+    local result="PASS"
+    local details=
+
+    # Porównaj każdą tabelę
+    while IFS= read -r line; do
+        [[ -z "${line}" ]] && continue
+        local table="${line%%:*}"
+        local src_count="${line##*:}"
+        local drill_count
+        drill_count="$(echo "${drill_counts}" | grep "^${table}:" | cut -d: -f2 || echo "0")"
+
+        if [[ "${src_count}" -gt 0 ]]; then
+            local diff
+            diff=$(( (src_count - drill_count) * 100 / src_count ))
+            if [[ "${diff#-}" -gt 1 ]]; then
+                result="FAIL"
+                details+=("{\"table\":\"${table}\",\"source\":${src_count},\"drill\":${drill_count},\"diff_pct\":${diff}}")
+            fi
+        fi
+    done <<< "${source_counts}"
+
+    echo "${result}"
+    printf '%s\n' "${details[@]}"
+}
+
+validate_schema {
+    log "Validating schema diff (expected: 0 diff)..."
+    local src_tables
+    src_tables="$(PGPASSWORD="${DB_PASSWORD}" psql \
+        -h "${DB_HOST_SOURCE}" -p "${DB_PORT_SOURCE}" \
+        -U "${DB_USER_SOURCE}" -d "${DB_NAME_SOURCE}" -t -A \
+        -c "SELECT table_name FROM information_schema.tables WHERE table_schema='public' ORDER BY 1;" \
+        2>/dev/null | sort)"
+
+    local drill_tables
+    drill_tables="$(docker exec "${DRILL_CONTAINER}" \
+        psql -U "${DB_USER_SOURCE}" -d "${DRILL_DB_NAME}" -t -A \
+        -c "SELECT table_name FROM information_schema.tables WHERE table_schema='public' ORDER BY 1;" \
+        2>/dev/null | sort)"
+
+    if [[ "${src_tables}" == "${drill_tables}" ]]; then
+        echo "PASS"
+    else
+        echo "FAIL"
+        diff <(echo "${src_tables}") <(echo "${drill_tables}") || true
+    fi
+}
+
+generate_report {
+    local rowcount_result="$1"
+    local schema_result="$2"
+    local overall
+    overall="$([[ "${rowcount_result}" == "PASS" && "${schema_result}" == "PASS" ]] && echo "PASS" || echo "FAIL")"
+
+    cat > "${REPORT_FILE}" <<EOF
+{
+  "project": "${PROJECT_NAME}",
+  "drill_ts": "$(date --iso-8601=seconds)",
+  "overall": "${overall}",
+  "rowcount_check": "${rowcount_result}",
+  "schema_check": "${schema_result}",
+  "backup_file": "$(basename "${DRILL_DIR}/drill-backup.sql.gz")",
+  "drill_db": "${DRILL_DB_NAME}"
+}
+EOF
+
+    cat "${REPORT_FILE}"
+    log "=== RESTORE DRILL ${overall} ==="
+
+    if [[ "${overall}" == "FAIL" ]]; then
+        exit 1
+    fi
+}
+
+# ── Main ──────────────────────────────────────────────────────────────────────
+main {
+    parse_args "$@"
+    log "=== restore-drill START (manual=${MANUAL_MODE}) ==="
+
+    download_latest_backup
+    local source_counts
+    source_counts="$(get_source_rowcounts)"
+    start_drill_container
+    run_restore
+
+    local rowcount_result schema_result
+    rowcount_result="$(validate_rowcounts "${source_counts}" | head -1)"
+    schema_result="$(validate_schema)"
+
+    generate_report "${rowcount_result}" "${schema_result}"
+}
+
+main "$@"

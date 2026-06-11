@@ -1,0 +1,227 @@
+{
+  "schema_version": 2,
+  "contract_id": "liquid-glass-design-tokens-c",
+  "tokens_version": "2.0.0",
+  "producer": "liquid-glass-design-system",
+  "consumers": ["web-builder", "code-implementer"],
+  "verified_by": "ios-ux-checker",
+  "breaking_changes_from": "1.0.0",
+  "breaking_changes_note": "v2.0.0 desktop-first reversal: blur_per_level_px desktop default 6/12/20 (vs mobile 8/16/24 w v1), glass_opacity desktop 0.60 (vs 0.70 v1), touch_targets desktop 44pt (vs 48pt v1), action_sheet_pattern popover-desktop|sheet-mobile (vs sheet-everywhere v1)",
+
+  "brand_palette_variant": 1,
+  "brand_palette_note": "1=ciepły drewno+dach (DEFAULT DemoApp), 2=chłodny stal, 3=czerwony lakier. Zamień brand_palette_variant i zastosuj odpowiedni blok colors.palette_N. Finalizacja w  przy bootstrappie.",
+
+  "payload": {
+
+    "palettes": {
+      "palette_1": {
+        "name": "Ciepły gradient drewno+dach",
+        "personality": "drewno, dom, ciepło — właściwe dla firmy dekarskiej",
+        "contrast_note": "13:1 WCAG AAA slate-900 na surface-1. Wariant 1 = DEFAULT DemoApp.",
+        "status": "DEFAULT — aktywny",
+        "light": {
+          "accent_brand":              "#B97A35",
+          "accent_brand_hover":        "#9E6828",
+          "accent_brand_muted":        "#F5EBD8",
+          "accent_brand_dark":         "#D4943F",
+          "accent_brand_muted_dark":   "#3A2A15",
+          "bg_gradient_from":          "#FAF7F2",
+          "bg_gradient_to":            "#EEE4D3",
+          "bg_primary":                "#FAF7F2",
+          "bg_secondary":              "#EEE4D3",
+          "bg_tertiary":               "#E4D8C8",
+          "surface_1_rgb":             "240, 244, 250",
+          "surface_2_rgb":             "240, 244, 250",
+          "surface_3_rgb":             "240, 244, 250",
+          "surface_1_solid":           "#EEF2F8",
+          "surface_2_solid":           "#F3F6FB",
+          "surface_3_solid":           "#F8FAFD",
+          "highlight_top":             "rgba(255, 255, 255, 0.30)",
+          "interactive_pressed":       "rgba(185, 122, 53, 0.10)",
+          "material_blue":             "rgba(46, 92, 138, 0.16)",
+          "material_green":            "rgba(22, 101, 52, 0.16)",
+          "material_orange":           "rgba(185, 122, 53, 0.20)",
+          "material_red":              "rgba(185, 28, 28, 0.16)"
+        },
+        "dark": {
+          "accent_brand":              "#D4943F",
+          "accent_brand_hover":        "#E8A85A",
+          "accent_brand_muted":        "#3A2A15",
+          "bg_primary":                "#1A1612",
+          "bg_secondary":              "#231D16",
+          "bg_tertiary":               "#2C241B",
+          "surface_1_solid":           "#2C241B",
+          "surface_2_solid":           "#332B21",
+          "surface_3_solid":           "#3A3128",
+          "surface_1_rgb":             "44, 36, 27",
+          "surface_2_rgb":             "44, 36, 27",
+          "surface_3_rgb":             "44, 36, 27",
+          "highlight_top":             "rgba(255, 255, 255, 0.08)",
+          "interactive_pressed":       "rgba(212, 148, 63, 0.15)"
+        }
+      },
+      "palette_2": {
+        "name": "Chłodny przemysłowy stal",
+        "personality": "profesjonalizm, precyzja techniczna, zaufanie",
+        "contrast_note": "14:1 WCAG AAA",
+        "status": "DOSTĘPNY",
+        "light": {
+          "accent_brand":              "#2E5C8A",
+          "accent_brand_hover":        "#234970",
+          "accent_brand_muted":        "#DBEAFE",
+          "accent_brand_dark":         "#4B8BC2",
+          "bg_gradient_from":          "#F5F7FA",
+          "bg_gradient_to":            "#E8EDF5",
+          "bg_primary":                "#F5F7FA",
+          "surface_1_rgb":             "235, 240, 248",
+          "surface_1_solid":           "#EBF0F8"
+        },
+        "dark": {
+          "accent_brand":              "#4B8BC2",
+          "bg_primary":                "#0F1626"
+        }
+      },
+      "palette_3": {
+        "name": "Akcentowy lakier samochodowy",
+        "personality": "energia, alert, natychmiastowe działanie — jak czerwona dachówka ceramiczna",
+        "contrast_note": "15:1 WCAG AAA. Uwaga: czerwony akcent — nie używaj dla destrukcyjnych akcji.",
+        "status": "DOSTĘPNY",
+        "light": {
+          "accent_brand":              "#C53030",
+          "accent_brand_hover":        "#9B1C1C",
+          "accent_brand_muted":        "#FEE2E2",
+          "accent_brand_dark":         "#FC8181",
+          "bg_gradient_from":          "#FCFCFD",
+          "bg_gradient_to":            "#F0F1F3",
+          "bg_primary":                "#FCFCFD",
+          "surface_1_rgb":             "248, 248, 250",
+          "surface_1_solid":           "#F4F4F6"
+        },
+        "dark": {
+          "accent_brand":              "#FC8181",
+          "bg_primary":                "#0C0A0B"
+        }
+      }
+    },
+
+    "colors": {
+      "label": {
+        "light": {
+          "primary":    "hsl(0, 0%, 9%)",
+          "secondary":  "hsl(0, 0%, 38%)",
+          "tertiary":   "hsl(0, 0%, 57%)",
+          "quaternary": "hsl(0, 0%, 72%)"
+        },
+        "dark": {
+          "primary":    "hsl(0, 0%, 100%)",
+          "secondary":  "hsl(0, 0%, 60%)",
+          "tertiary":   "hsl(0, 0%, 42%)",
+          "quaternary": "hsl(0, 0%, 28%)"
+        }
+      },
+      "separator": {
+        "light": {
+          "opaque":    "hsl(0, 0%, 84%)",
+          "nonopaque": "rgba(60, 60, 67, 0.29)"
+        },
+        "dark": {
+          "opaque":    "hsl(0, 0%, 22%)",
+          "nonopaque": "rgba(84, 84, 88, 0.65)"
+        }
+      },
+      "css_variable_prefix": "--lg-",
+      "css_no_conflict_note": "NIE koliduje z --portfolio-* (portfolio-design-patterns). Zero wspólnych nazw."
+    },
+
+    "typography": {
+      "font_primary": "SF Pro Display, SF Pro Text, Inter, system-ui, -apple-system, sans-serif",
+      "font_license_note": "SF Pro dostępne przez system-ui/-apple-system na Apple. Inter open-source fallback. NIE bundluj SF Pro w assets.",
+      "pl_ogonki_note": "Inter v4+ pełna obsługa ąćęłńóśźż. Testuj na Windows (Inter jako fallback dla SF Pro).",
+      "minimum_body_pt": 17,
+      "scale": {
+        "large_title":  { "size_rem": 2.125,  "lh_rem": 2.5625, "weight": 700, "class": "text-lg-large-title", "use": "Główny tytuł ekranu — jeden per strona" },
+        "title_1":      { "size_rem": 1.75,   "lh_rem": 2.125,  "weight": 400, "class": "text-lg-title-1",     "use": "Tytuł modalu, section header" },
+        "title_2":      { "size_rem": 1.375,  "lh_rem": 1.75,   "weight": 400, "class": "text-lg-title-2",     "use": "Podtytuł, nagłówek grupy" },
+        "title_3":      { "size_rem": 1.25,   "lh_rem": 1.5625, "weight": 400, "class": "text-lg-title-3",     "use": "Nagłówek trzeciego rzędu" },
+        "headline":     { "size_rem": 1.0625, "lh_rem": 1.375,  "weight": 600, "class": "text-lg-headline",    "use": "Label sekcji, label formularza" },
+        "body":         { "size_rem": 1.0625, "lh_rem": 1.375,  "weight": 400, "class": "text-lg-body",        "use": "Treść główna — MINIMUM 17pt senior", "min_senior": true },
+        "callout":      { "size_rem": 1.0,    "lh_rem": 1.3125, "weight": 400, "class": "text-lg-callout",     "use": "Tekst przycisku, badge, secondary item" },
+        "subheadline":  { "size_rem": 0.9375, "lh_rem": 1.25,   "weight": 400, "class": "text-lg-subheadline", "use": "Tekst drugorzędny" },
+        "footnote":     { "size_rem": 0.8125, "lh_rem": 1.125,  "weight": 400, "class": "text-lg-footnote",    "use": "Podpis, helper text, minimum secondary" },
+        "caption_1":    { "size_rem": 0.75,   "lh_rem": 1.0,    "weight": 400, "class": "text-lg-caption-1",   "use": "Metadata, timestamp" },
+        "caption_2":    { "size_rem": 0.6875, "lh_rem": 0.8125, "weight": 400, "class": "text-lg-caption-2",   "use": "Microtext — absolutne minimum" }
+      },
+      "note_senior": "Jan 50+ — body min 17pt. Footnote 13pt = min secondary. Caption (11-12pt) TYLKO microtext/metadata."
+    },
+
+    "spacing": {
+      "scale_px":                  [0, 4, 8, 12, 16, 20, 24, 32, 40, 48, 64],
+      "grid_base_px":              8,
+      "screen_padding_desktop_px": 24,
+      "screen_padding_mobile_px":  16,
+      "safe_area_note": "env(safe-area-inset-*) dla iPhone notch / home indicator. viewportFit=cover obowiązkowe w layout.tsx."
+    },
+
+    "radius": {
+      "xs_px": 8, "sm_px": 12, "md_px": 16, "lg_px": 20, "xl_px": 24, "modal_px": 28, "full": "9999px",
+      "card_default": "xl_px (24px)",
+      "button_default": "md_px (16px)",
+      "sheet_bottom": "modal_px (28px) dla górnych rogów",
+      "note": "iOS-like: xl (24px) dla kart. modal (28px) dla Sheet/Dialog. md (16px) dla drugorzędnych."
+    },
+
+    "elevation": {
+      "depth_levels":              [0, 1, 2, 3],
+      "use_per_level":             ["background — solid gradient", "cards, list items", "modals, popovers, sheets", "context menus, tooltips, toasts"],
+      "css_classes":               ["(brak — solid bg)", "lg-card", "lg-modal", "lg-overlay"],
+
+      "blur_per_level_px":         [0, 6, 12, 20],
+      "blur_note_desktop":         "DESKTOP PRIMARY :root default (6/12/20px — statyczne tło, mniejszy vibrancy)",
+      "blur_mobile_override_px":   [0, 8, 16, 24],
+      "blur_note_mobile":          "MOBILE RESPONSIVE @media (max-width: 767px) override (8/16/24px — ruch tła, pełny vibrancy)",
+
+      "saturate_per_level":        [1, 1.3, 1.5, 1.7],
+      "shadow_per_level": [
+        "none",
+        "0 2px 12px rgba(0,0,0,0.06)",
+        "0 8px 32px rgba(0,0,0,0.10)",
+        "0 16px 56px rgba(0,0,0,0.18)"
+      ],
+
+      "glass_opacity_per_level":         [1, 0.60, 0.72, 0.88],
+      "glass_opacity_note_desktop":      "DESKTOP PRIMARY — mocniejszy kontrast (0.60/0.72/0.88)",
+      "glass_opacity_mobile_override":   [1, 0.40, 0.60, 0.80],
+      "glass_opacity_note_mobile":       "MOBILE RESPONSIVE @media override — pełny glass (0.40/0.60/0.80)"
+    },
+
+    "touch_targets": {
+      "desktop_primary_pt":           44,
+      "desktop_note":                 "Mouse + klawiatura na laptopie — Apple HIG minimum 44pt. Senior 50+ = 44pt desktop wystarczające.",
+      "mobile_responsive_min_pt":     48,
+      "mobile_responsive_pref_pt":    56,
+      "apple_hig_absolute_min_pt":    44,
+      "tailwind_desktop":             "min-h-[44px] min-w-[44px]",
+      "tailwind_mobile_override":     "max-md:min-h-[48px] max-md:min-w-[48px]",
+      "tailwind_preferred_mobile":    "max-md:h-14 (56px)",
+      "breaking_change_note":         "v1.0.0 było 48pt absolute minimum. v2.0.0: 44pt desktop primary, 48pt mobile override."
+    },
+
+    "action_sheet_pattern": "popover-desktop|sheet-mobile",
+    "action_sheet_note": "Desktop (>=768px): <Popover> lub <DropdownMenu> (mouse ergonomia). Mobile (<768px): <Sheet side='bottom' pb-safe> (kciuk ergonomia). Komponent useIsDesktop (useMediaQuery) do wyboru w runtime.",
+
+    "animation": {
+      "spring_easing":         "cubic-bezier(0.32, 0.72, 0, 1)",
+      "tailwind_class":        "ease-spring",
+      "tailwind_alias":        "ease-ios-spring",
+      "duration_fast_ms":      150,
+      "duration_normal_ms":    200,
+      "duration_slow_ms":      300,
+      "duration_slower_ms":    400,
+      "note": "Spring dla wszystkich glass elements i CTA. Nie ease-in-out, nie linear."
+    },
+
+    "tailwind_config_snippet": "Pełny snippet w tailwind-shadcn-integration.md. Klasy: .lg-card, .lg-modal, .lg-overlay, .lg-sheet-bottom. Kolory: text-[--lg-label-primary] etc. FontSize: text-lg-body, text-lg-headline etc.",
+
+    "shadcn_pattern_note": "Komponenty KOPIOWANE do projektu, BEZ biblioteki shadcn. Adaptery w tailwind-shadcn-integration.md. Wzorzec jak external-crm."
+  }
+}

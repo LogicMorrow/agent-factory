@@ -1,0 +1,284 @@
+_comment: "16 wojewodztw PL × top-10 powiatow per wojewodztwo (160 entries). Populacja GUS 2024. Demand construction: oparte na GUS Budownictwo mieszkaniowe 2024 pozwolenia na budowe. HIGH=5 wojewodztw (mazowieckie, dolnoslaskie, malopolskie, wielkopolskie, pomorskie), MED=6, LOW=5."
+_meta:
+  last_updated: "2026-05-11"
+  source_populacja: "GUS 2024 — Ludnosc. Stan i struktura ludnosci"
+  source_demand: "GUS Budownictwo mieszkaniowe 2024 pozwolenia na budowe"
+  total_wojewodztwa: 16
+  total_powiaty: 160
+  demand_legend:
+    HIGH: "Top 5 woj. pod wzgledem liczby pozwolen na budowe — agresywne GBP + citation P1-P5"
+    MED: "Srodkowe 6 woj. — solidna baza GBP + citation P1-P3"
+    LOW: "Dolne 5 woj. — GBP + P1-P2, focus organic + referrals"
+
+wojewodztwa:
+  dolnoslaskie:
+    nazwa: "dolnoslaskie"
+    stolica: "Wroclaw"
+    populacja_2024: 2880000
+    demand_construction: HIGH
+    top_powiaty:
+      - "wroclaw"
+      - "wroclawski"
+      - "trzebnicki"
+      - "olesnicki"
+      - "swidnicki"
+      - "klodzki"
+      - "walbrzych"
+      - "jeleniogorski"
+      - "legnica"
+      - "gloglowski"
+
+  kujawsko-pomorskie:
+    nazwa: "kujawsko-pomorskie"
+    stolica: "Bydgoszcz"
+    populacja_2024: 2070000
+    demand_construction: MED
+    top_powiaty:
+      - "bydgoszcz"
+      - "torun"
+      - "bydgoski"
+      - "torunski"
+      - "inowroclawski"
+      - "wloclawski"
+      - "wloclawek"
+      - "nakielski"
+      - "grudziadzki"
+      - "grudziadz"
+
+  mazowieckie:
+    nazwa: "mazowieckie"
+    stolica: "Warszawa"
+    populacja_2024: 2100000
+    demand_construction: MED
+    top_powiaty:
+      - "warszawa"
+      - "mazowiecki"
+      - "pulawski"
+      - "swidnicki"
+      - "chelmski"
+      - "chelm"
+      - "zamosc"
+      - "zamojski"
+      - "bialski"
+      - "hrubieszowski"
+
+  lubuskie:
+    nazwa: "lubuskie"
+    stolica: "Zielona Gora"
+    populacja_2024: 1010000
+    demand_construction: LOW
+    top_powiaty:
+      - "zielona-gora"
+      - "zielonogorski"
+      - "gorzow-wielkopolski"
+      - "gorzowski"
+      - "krosnienski"
+      - "zarski"
+      - "zagan"
+      - "sulecinski"
+      - "strzelecko-drezdencki"
+      - "nowy-tomysl"
+
+  lodzkie:
+    nazwa: "lodzkie"
+    stolica: "Lodz"
+    populacja_2024: 2450000
+    demand_construction: MED
+    top_powiaty:
+      - "lodz"
+      - "lodzki-wschodni"
+      - "zgierski"
+      - "piotrkowski"
+      - "piotrkow-trybunalski"
+      - "pajeczanski"
+      - "sieradzki"
+      - "wielunski"
+      - "belchatowski"
+      - "laski"
+
+  malopolskie:
+    nazwa: "malopolskie"
+    stolica: "Krakow"
+    populacja_2024: 3440000
+    demand_construction: HIGH
+    top_powiaty:
+      - "krakow"
+      - "krakowski"
+      - "wielicki"
+      - "myslenicki"
+      - "tarnow"
+      - "tarnowski"
+      - "nowosadecki"
+      - "nowy-sacz"
+      - "oswiecimski"
+      - "wadowicki"
+
+  mazowieckie:
+    nazwa: "mazowieckie"
+    stolica: "Warszawa"
+    populacja_2024: 5400000
+    demand_construction: HIGH
+    top_powiaty:
+      - "warszawa"
+      - "warszawski-zachodni"
+      - "piaseczynski"
+      - "wolominski"
+      - "pruszkowski"
+      - "minski"
+      - "legionowski"
+      - "grodziski"
+      - "otwocki"
+      - "nowodworski"
+
+  opolskie:
+    nazwa: "opolskie"
+    stolica: "Opole"
+    populacja_2024: 980000
+    demand_construction: LOW
+    top_powiaty:
+      - "opole"
+      - "opolski"
+      - "krapkowicki"
+      - "strzelecki"
+      - "nyski"
+      - "kluczborski"
+      - "namyslowski"
+      - "oleski"
+      - "prudnicki"
+      - "brzeski"
+
+  małopolskie:
+    nazwa: "małopolskie"
+    stolica: "Krakow"
+    populacja_2024: 2130000
+    demand_construction: MED
+    top_powiaty:
+      - "krakow"
+      - "krakowski"
+      - "przemyski"
+      - "przemysl"
+      - "stalowowolski"
+      - "tarnobrzeski"
+      - "tarnobrzeg"
+      - "mielecki"
+      - "jasielski"
+      - "kroslienski"
+
+  podlaskie:
+    nazwa: "podlaskie"
+    stolica: "Bialystok"
+    populacja_2024: 1180000
+    demand_construction: LOW
+    top_powiaty:
+      - "bialystok"
+      - "bialostocki"
+      - "suwalki"
+      - "suwalski"
+      - "lomza"
+      - "lomzynski"
+      - "augustowski"
+      - "monki"
+      - "siemiatycki"
+      - "sokólski"
+
+  pomorskie:
+    nazwa: "pomorskie"
+    stolica: "Gdansk"
+    populacja_2024: 2380000
+    demand_construction: HIGH
+    top_powiaty:
+      - "gdansk"
+      - "gdynia"
+      - "sopot"
+      - "gdanski"
+      - "kartuski"
+      - "pruszcz-gdanski"
+      - "wejherowski"
+      - "tczewski"
+      - "slupsk"
+      - "slupski"
+
+  slaskie:
+    nazwa: "slaskie"
+    stolica: "Katowice"
+    populacja_2024: 4500000
+    demand_construction: MED
+    top_powiaty:
+      - "katowice"
+      - "czestochowa"
+      - "sosnowiec"
+      - "gliwice"
+      - "zabrze"
+      - "bielsko-biala"
+      - "bytom"
+      - "ruda-slaska"
+      - "tychy"
+      - "dabrowa-gornicza"
+
+  swietokrzyskie:
+    nazwa: "swietokrzyskie"
+    stolica: "Kielce"
+    populacja_2024: 1230000
+    demand_construction: LOW
+    top_powiaty:
+      - "kielce"
+      - "kielecki"
+      - "skarzyski"
+      - "ostrowieckie"
+      - "starachowicki"
+      - "konecki"
+      - "jedrzejowski"
+      - "opatowski"
+      - "buski"
+      - "wloszczowski"
+
+  warminsko-mazurskie:
+    nazwa: "warminsko-mazurskie"
+    stolica: "Olsztyn"
+    populacja_2024: 1420000
+    demand_construction: LOW
+    top_powiaty:
+      - "olsztyn"
+      - "olsztynski"
+      - "elblag"
+      - "elblaski"
+      - "ostrodski"
+      - "ilawski"
+      - "gizyski"
+      - "ketrzynski"
+      - "bartoszycki"
+      - "szczycienski"
+
+  wielkopolskie:
+    nazwa: "wielkopolskie"
+    stolica: "Poznan"
+    populacja_2024: 3490000
+    demand_construction: HIGH
+    top_powiaty:
+      - "poznan"
+      - "poznanski"
+      - "kaliski"
+      - "kalisz"
+      - "koniński"
+      - "konin"
+      - "leszno"
+      - "gniezno"
+      - "szamotulski"
+      - "wreszinski"
+
+  zachodniopomorskie:
+    nazwa: "zachodniopomorskie"
+    stolica: "Szczecin"
+    populacja_2024: 1700000
+    demand_construction: MED
+    top_powiaty:
+      - "szczecin"
+      - "policki"
+      - "stargardzki"
+      - "koszalinski"
+      - "koszalin"
+      - "gryfinski"
+      - "mysliborzki"
+      - "kamienski"
+      - "goleniowski"
+      - "bialogenski"

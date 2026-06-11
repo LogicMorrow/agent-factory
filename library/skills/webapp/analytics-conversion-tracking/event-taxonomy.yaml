@@ -1,0 +1,185 @@
+# event-taxonomy.yaml
+# Standard 7 eventów dla webapp analytics — analytics-conversion-tracking skill v1.0.0
+# Konwencja: snake_case, max 40 znaków, BRAK PII w params
+# ZAKAZ eventów: lead_scored, crm_synced, customer_journey_step (BEZ CRM scoring)
+# Last updated: 2026-05-11
+
+events:
+  - event_name: pageview
+    trigger: Załadowanie strony / zmiana route w SPA
+    category: navigation
+    when_fired: Automatycznie przy każdej nawigacji (Next.js router events)
+    params:
+      page_path:
+        type: string
+        example: "/kalkulator-dachu"
+        required: true
+      page_title:
+        type: string
+        example: "Kalkulator Dachu — Wycena Online"
+        required: false
+    implementation_note: |
+      Plausible: automatyczny (script.js).
+      GA4 server-side: POST /api/track z event_name=pageview.
+      Next.js App Router: usePathname + useEffect → fire on change.
+    sample_code: |
+      // app/layout.tsx — useEffect on pathname change
+      useEffect( => {
+        analytics.pageview; // Plausible auto, GA4 via /api/track
+      }, [pathname]);
+
+  - event_name: scroll_50
+    trigger: Użytkownik przewinął ≥50% długości strony
+    category: engagement
+    when_fired: Jednorazowo per sesja strony (fired guard required)
+    params:
+      page_path:
+        type: string
+        example: "/kalkulator-dachu"
+        required: false
+    implementation_note: |
+      Kalibrowany do viewport: (scrollY / (body.scrollHeight - window.innerHeight)) * 100 >= 50.
+      Zgodny z responsive-web-standards-2026 §3 — działa poprawnie na mobile (mniejszy viewport).
+      passive: true obowiązkowe (INP protection).
+    constraints:
+      - fired_guard: true  # jednorazowo — boolean flag per session
+      - passive_listener: true  # INP ochrona
+
+  - event_name: scroll_100
+    trigger: Użytkownik przewinął ≥95% długości strony (proxy dla 100%)
+    category: engagement
+    when_fired: Jednorazowo per sesja strony (fired guard required)
+    params:
+      page_path:
+        type: string
+        example: "/kalkulator-dachu"
+        required: false
+    implementation_note: |
+      Próg 95% zamiast 100% — sticky footers i CTA mogą blokować osiągnięcie 100%.
+      Fired guard niezależny od scroll_50.
+    constraints:
+      - fired_guard: true
+      - threshold: 95  # procent, nie 100 (sticky footer protection)
+
+  - event_name: cta_click
+    trigger: Kliknięcie dowolnego przycisku CTA (głównego wezwania do działania)
+    category: interaction
+    when_fired: Każde kliknięcie CTA (brak fired guard — mierzy powtórzenia)
+    params:
+      label:
+        type: string
+        example: "Oblicz wycenę"
+        required: true
+        description: "Tekst lub identyfikator CTA (human-readable)"
+      location:
+        type: string
+        example: "hero_section"
+        required: false
+        allowed_values: [hero_section, sticky_bar, form_bottom, sidebar, popup]
+    implementation_note: |
+      Implementacja: onClick handler na <Button> komponentach.
+      Unikaj wysyłania event dopiero po nawigacji (może zgubić event jeśli redirect szybki).
+    sample_code: |
+      <Button onClick={ => {
+        analytics.cta_click('Oblicz wycenę', 'hero_section');
+        router.push('/kalkulator');
+      }}>
+        Oblicz wycenę
+      </Button>
+
+  - event_name: calc_step_completed
+    trigger: Użytkownik ukończył krok kalkulatora wielostopniowego i przeszedł dalej
+    category: funnel
+    when_fired: Po kliknięciu "Dalej" / potwierdzeniu kroku (NIE przy load strony)
+    params:
+      step:
+        type: string
+        example: "krok_2_typ_dachu"
+        required: true
+        description: "snake_case: krok_{numer}_{nazwa_kroku}"
+      calc_slug:
+        type: string
+        example: "kalkulator-dachu"
+        required: false
+    implementation_note: |
+      Uruchamiaj w handleNextStep PRZED przejściem do kolejnego kroku.
+      Zgodny z webapp-calculator-patterns: multistep-wizard useReducer NEXT_STEP action.
+      Pozwala mierzyć drop-off per krok (funnel analysis w GA4/Plausible).
+    sample_code: |
+      const handleNextStep =  => {
+        analytics.calc_step_completed(`krok_${currentStep}_${stepNames[currentStep]}`);
+        dispatch({ type: 'NEXT_STEP' });
+      };
+    forbidden_params:
+      - user_email  # PII ZAKAZ
+      - user_name   # PII ZAKAZ
+
+  - event_name: calc_result_shown
+    trigger: Wynik kalkulacji wyświetlony użytkownikowi (ekran wyników)
+    category: funnel
+    when_fired: Jednorazowo gdy komponent wyników staje się widoczny (mount/render)
+    params:
+      calc_slug:
+        type: string
+        example: "kalkulator-dachu"
+        required: true
+      result_range:
+        type: string
+        example: "150000-200000"
+        required: false
+        description: "Zakres kwotowy (PLN) jako string — NIE dokładna kwota, NIE PII"
+      steps_completed:
+        type: integer
+        example: 4
+        required: false
+    implementation_note: |
+      result_range: zaokrągl do przedziałów (np. co 50k PLN) — unikaj unikalnych wartości
+      które mogłyby identyfikować użytkownika (quasi-PII).
+      Fire w useEffect na mount komponentu wyników.
+    sample_code: |
+      useEffect( => {
+        const range = `${Math.floor(result / 50000) * 50000}-${Math.ceil(result / 50000) * 50000}`;
+        analytics.calc_result_shown('kalkulator-dachu', range, totalSteps);
+      }, []); // mount only
+    forbidden_params:
+      - exact_price    # może być quasi-PII
+      - user_data      # PII ZAKAZ
+
+  - event_name: lead_form_submitted
+    trigger: Użytkownik wysłał formularz lead-gate (dane kontaktowe + wynik kalkulatora)
+    category: conversion
+    when_fired: Po pomyślnej odpowiedzi API (/api/lead → 200 OK) — NIE przy submit (przed walidacją)
+    params:
+      calc_slug:
+        type: string
+        example: "kalkulator-dachu"
+        required: true
+      lead_source:
+        type: string
+        example: "kalkulator_wynik"
+        required: false
+        allowed_values: [kalkulator_wynik, kontakt_strona, popup_exit_intent]
+    implementation_note: |
+      WAŻNE: fire dopiero po otrzymaniu 200 OK od /api/lead (NIE przy kliknięciu Submit).
+      Brak PII w params — email i imię trafiają do Resend (backend), NIE do analytics.
+      NIE forwarduj do external-crm — patrz anti-crm-integration.md DEAL-BREAKER.
+    sample_code: |
+      const onSubmit = async (data: LeadFormData) => {
+        const res = await fetch('/api/lead', { method: 'POST', body: JSON.stringify(data) });
+        if (res.ok) {
+          analytics.lead_form_submitted('kalkulator-dachu', 'kalkulator_wynik');
+          // ^ Event-only. Dane osobowe poszły do Resend, NIE do external-crm.
+        }
+      };
+    forbidden_params:
+      - email       # PII ZAKAZ
+      - phone       # PII ZAKAZ
+      - name        # PII ZAKAZ
+      - crm_lead_id # ZAKAZ — analytics NIE zna ID z CRM
+
+# ZAKAZ — poniższe eventy NIE mogą istnieć w tym skill bundle:
+forbidden_events:
+  - lead_scored        # Wymaga CRM scoring — ZAKAZ (analytics = read-only observer)
+  - crm_synced         # Jawne naruszenie DEAL-BREAKER anti-crm-integration.md
+  - customer_journey_step  # Marketing automation — poza zakresem, ZAKAZ powiązania z CRM
+  - user_identified    # PII / cross-device tracking — niezgodne z GDPR PL

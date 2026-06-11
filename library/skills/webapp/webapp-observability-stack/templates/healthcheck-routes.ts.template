@@ -1,0 +1,145 @@
+/**
+ * Healthcheck Route Handlers — Next.js 14 App Router
+ * Three endpoints for {{PROJECT_NAME}}:
+ *   GET /api/health   — liveness probe (is app running?)
+ *   GET /api/ready    — readiness probe (is app ready to serve traffic? DB ok?)
+ *   GET /api/version  — version info (build metadata)
+ *
+ * Docker HEALTHCHECK, UptimeRobot, and CD workflow all target /api/health or /api/ready.
+ *
+ * File layout (create each as separate file in app/):
+ *   app/api/health/route.ts   ← liveness
+ *   app/api/ready/route.ts    ← readiness
+ *   app/api/version/route.ts  ← version
+ *   app/api/metrics/route.ts  ← stub for Prometheus v2 (see bottom)
+ */
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FILE: app/api/health/route.ts — Liveness probe
+// ═══════════════════════════════════════════════════════════════════════════
+
+import { NextResponse } from 'next/server'
+
+// Cache: no-store — always fresh, never CDN-cached
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+export async function GET {
+  const startedAt = process.env.APP_STARTED_AT ?? new Date.toISOString
+
+  return NextResponse.json(
+    {
+      status: 'ok',
+      timestamp: new Date.toISOString,
+      uptime: process.uptime,
+      started_at: startedAt,
+    },
+    {
+      status: 200,
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        'Content-Type': 'application/json',
+      },
+    }
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FILE: app/api/ready/route.ts — Readiness probe (DB ping)
+// ═══════════════════════════════════════════════════════════════════════════
+
+// import { NextResponse } from 'next/server'
+// import { prisma } from '@/lib/prisma'  // your Prisma client singleton
+
+export const dynamic_ready = 'force-dynamic'
+
+export async function GET_ready {
+  const checks: Record<string, 'ok' | 'error'> = {}
+  let overallStatus: 'ok' | 'degraded' = 'ok'
+  const start = Date.now
+
+  // ─── Database check ─────────────────────────────────────────────────────
+  try {
+    // Prisma raw query: fastest possible ping
+    // await prisma.$queryRaw`SELECT 1`
+    checks.db = 'ok'
+  } catch {
+    checks.db = 'error'
+    overallStatus = 'degraded'
+  }
+
+  const latencyMs = Date.now - start
+  const httpStatus = overallStatus === 'ok' ? 200 : 503
+
+  return NextResponse.json(
+    {
+      status: overallStatus,
+      timestamp: new Date.toISOString,
+      checks,
+      latency_ms: latencyMs,
+    },
+    {
+      status: httpStatus,
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        'Content-Type': 'application/json',
+      },
+    }
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FILE: app/api/version/route.ts — Build metadata
+// ═══════════════════════════════════════════════════════════════════════════
+
+// import { NextResponse } from 'next/server'
+
+export const dynamic_version = 'force-dynamic'
+
+export async function GET_version {
+  return NextResponse.json(
+    {
+      version: process.env.NEXT_PUBLIC_APP_VERSION ?? '0.0.0',
+      build_sha: process.env.BUILD_SHA ?? 'local',
+      build_time: process.env.BUILD_TIME ?? 'unknown',
+      node_version: process.version,
+      app: '{{PROJECT_NAME}}',
+    },
+    {
+      status: 200,
+      headers: {
+        'Cache-Control': 'no-store',
+        'Content-Type': 'application/json',
+      },
+    }
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FILE: app/api/metrics/route.ts — Prometheus v2 stub
+// Ready for Prometheus scraping when adding prometheus-client in v2.
+// In v1: returns 501 with upgrade instructions.
+// ═══════════════════════════════════════════════════════════════════════════
+
+// import { NextResponse } from 'next/server'
+
+export const dynamic_metrics = 'force-dynamic'
+
+export async function GET_metrics {
+  // v2 path: replace this stub with:
+  //   import { register } from 'prom-client'
+  //   const metrics = await register.metrics
+  //   return new Response(metrics, { headers: { 'Content-Type': register.contentType } })
+  //
+  // UptimeRobot monitors /api/health (not /metrics)
+  // Prometheus scrapes /metrics — add prom-client + node-exporter in v2
+
+  return NextResponse.json(
+    {
+      status: 'not_implemented',
+      message: 'Prometheus metrics available in v2. Use /api/health for uptime monitoring.',
+      upgrade_path: 'pnpm add prom-client, then replace this stub.',
+    },
+    { status: 501 }
+  )
+}

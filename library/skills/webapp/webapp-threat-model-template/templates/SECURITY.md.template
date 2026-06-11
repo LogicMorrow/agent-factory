@@ -1,0 +1,109 @@
+# Security Policy — {{PROJECT_NAME}}
+
+## Reporting a vulnerability
+
+**Email:** security@{{PROD_DOMAIN}}
+
+**GPG encryption (recommended for sensitive reports):**
+Key fingerprint: `{{GPG_FINGERPRINT}}`
+Public key: https://keys.openpgp.org/search?q=security@{{PROD_DOMAIN}}
+
+**What to include:**
+- Description of the vulnerability
+- Steps to reproduce (PoC if possible)
+- Affected component (app / db / proxy / backup / ci-cd)
+- CVSS score estimate if known
+- Your contact for follow-up
+
+**What NOT to include:** production data, real user PII — use synthetic data in PoC.
+
+---
+
+## Disclosure timeline
+
+| CVSS Score | Severity | Fix deadline | Public disclosure |
+|---|---|---|---|
+| 9.0 – 10.0 | Critical | 7 days | After fix deployed |
+| 7.0 – 8.9 | High | 30 days | After fix deployed |
+| 4.0 – 6.9 | Medium | 90 days | Standard |
+| 0.1 – 3.9 | Low | Next release | Standard |
+
+**Standard disclosure:** 90-day coordinated disclosure (Google Project Zero model).
+If patch not available within deadline, we will disclose with available mitigations.
+
+**Response SLA:** Acknowledgement within 48h of report.
+
+---
+
+## Supported versions
+
+| Version | Supported | Notes |
+|---|---|---|
+| Latest production | Yes | Current only |
+| Previous releases | No | Single-user, no legacy support |
+
+This is a single-user internal application. Only the currently deployed production version receives security updates. No LTS branches maintained.
+
+---
+
+## Secrets rotation cadence
+
+| Secret | Normal cadence | Emergency rotation trigger | Procedure |
+|---|---|---|---|
+| DB password (`DATABASE_URL`) | Quarterly (Jan/Apr/Jul/Oct) | Suspected breach or personnel change | `docker secret rm` → update env file → `docker compose restart app db` → verify `/api/ready` |
+| B2 application key | Yearly + on breach | Breach, key exposure in logs | B2 console → delete key → create new → update `RCLONE_B2_APPLICATION_KEY` → test backup run |
+| Sentry DSN | Yearly | Sentry project delete/recreate | Update `SENTRY_DSN` → restart app → verify Sentry event receipt |
+| GitHub PAT (deploy) | Every 6 months | GH personnel change | GH Settings → generate new → update GH Secrets `GH_PAT_DEPLOY` |
+| iron-session secret (`SESSION_SECRET`) | On breach only | Session token compromise suspected | Update env → `docker compose restart app` → all active sessions invalidated (users re-login) |
+| TLS certificate | Auto-renewed by Caddy | N/A | Caddy handles Let's Encrypt auto-renewal (60-day cert, renewed at 30 days) |
+
+**Rotation audit log:** każda rotacja musi być odnotowana w `artifacts/audit-trail/secrets-rotation.log` (format: `YYYY-MM-DD HH:MM:SS | SECRET_TYPE | ROTATED_BY | REASON`).
+
+---
+
+## Security incident escalation
+
+**Primary contact:** {{OWNER_NAME}} — {{OWNER_EMAIL}}
+
+**SLA:**
+- **Security breach suspected:** 1h reakcja, natychmiastowa izolacja
+- **Unauthorized data access:** 1h reakcja, isolation + RODO notification assessment
+- **Vulnerability report received:** 48h acknowledgement
+
+**Immediate isolation procedure:**
+1. `docker compose -f compose.prod.yml stop app` — zatrzymaj aplikację
+2. `docker compose -f compose.prod.yml stop proxy` — odetnij ruch
+3. Snapshot VPS (provider panel)
+4. Zachowaj logi: `docker compose logs --no-color > /tmp/incident-$(date +%Y%m%d%H%M%S).log`
+5. Notify: {{OWNER_EMAIL}} z subject "SECURITY INCIDENT: {{PROJECT_NAME}} — {opis}"
+
+**RODO notification (naruszenie danych):**
+- Jeśli PII klientów było dostępne: zgłoszenie do UODO w ciągu 72h (art. 33 RODO)
+- Admin danych: {{COMPANY_NAME}}, NIP {{COMPANY_NIP}}
+
+**Full procedure:** `docs/IR-procedure.md`
+
+---
+
+## Known security limitations (v1)
+
+| Limitation | Impact | Mitigation | Planned fix |
+|---|---|---|---|
+| TOTP optional (feature flag `TOTP_REQUIRED=false` default) | 2FA not enforced for all sessions | Strong password (zxcvbn ≥3) + session expiry 8h | Enable `TOTP_REQUIRED=true` before external audit |
+| No Cloudflare proxy | VPS IP exposed, DDoS only mitigated by Caddy rate limit | Caddy rate_limit 1000r/m + Hono endpoint limits | v2 if traffic grows |
+| Manual pentest not performed | Potential unknown vulnerabilities | OWASP ZAP automated DAST in CI (weekly + push) | v2 if insurance/compliance requirement |
+| Single VPS (no HA) | Downtime during maintenance/failure | B2 backup + restore drill monthly | v2 if SLA requirement tightens |
+
+---
+
+## Security standards compliance
+
+- **OWASP ASVS Level 2** — target standard (256 controls)
+- **RODO / GDPR** — applicable (PII of clients: name/phone/address)
+- **Data retention:** 5 years post-offer (Polish accounting law requirement)
+
+**Security audit:** "as needed" basis (not scheduled). Readiness: 18/18 CLAUDE.md zasada #15 from MVP.
+
+---
+
+*Last updated: {{YYYY-MM-DD}} by {{OWNER_NAME}}*

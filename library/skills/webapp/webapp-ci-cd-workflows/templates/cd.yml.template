@@ -1,0 +1,207 @@
+# CD Pipeline — {{PROJECT_NAME}}
+# Skill: webapp-ci-cd-workflows v1.0.0 
+# Zasada #15 CLAUDE.md pkt 4 — GitHub Actions cd.yml
+#
+# Podmień zmienne: {{PROJECT_NAME}} {{GHCR_OWNER}} {{APP_PORT}}
+#                  {{DEPLOY_BRANCH}} {{VPS_PROD_RUNNER_LABEL}}
+#
+# Job 1: build-and-push — GitHub-hosted (linux/amd64, push do ghcr.io)
+# Job 2: deploy-prod    — self-hosted runner na VPS prod (docker compose pull + up)
+#
+# Wymagania:
+# - Self-hosted runner zarejestrowany z labelem: {{VPS_PROD_RUNNER_LABEL}}
+# - Runner user ma dostęp do `docker` i `docker compose`
+# - /srv/{{PROJECT_NAME}}/docker-compose.yml istnieje na VPS prod
+# - Healthcheck endpoint: GET /api/ready → 200
+
+name: CD Pipeline
+
+on:
+  push:
+    branches: [{{DEPLOY_BRANCH}}]
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Powód manualnego deploymentu"
+        required: false
+        default: "manual redeploy"
+
+# Jeden deployment na raz — nie anuluj w trakcie (może zostawić VPS w złym stanie)
+concurrency:
+  group: cd-prod
+  cancel-in-progress: false
+
+env:
+  IMAGE_NAME: "ghcr.io/{{GHCR_OWNER}}/{{PROJECT_NAME}}"
+  NODE_VERSION: "{{NODE_VERSION}}"
+  PNPM_VERSION: "{{PNPM_VERSION}}"
+
+jobs:
+  # ─────────────────────────────────────────────
+  # Job 1: Build + Push do ghcr.io
+  # GitHub-hosted runner — build linux/amd64
+  # Tagi: :sha + :latest
+  # ─────────────────────────────────────────────
+  build-and-push:
+    name: Build & Push Image
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    permissions:
+      contents: read
+      packages: write
+      id-token: write  # dla cosign SBOM signing (opcjonalne v2)
+
+    outputs:
+      image_tag: ${{ steps.meta.outputs.version }}
+      image_digest: ${{ steps.build.outputs.digest }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for image
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=,format=long
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push image
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            NODE_VERSION=${{ env.NODE_VERSION }}
+            PNPM_VERSION=${{ env.PNPM_VERSION }}
+            BUILD_SHA=${{ github.sha }}
+
+      - name: Image summary
+        run: |
+          echo "### Image pushed to ghcr.io" >> $GITHUB_STEP_SUMMARY
+          echo "**Tag (SHA):** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Digest:** \`${{ steps.build.outputs.digest }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Full ref:** \`${{ env.IMAGE_NAME }}:${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+
+  # ─────────────────────────────────────────────
+  # Job 2: Deploy to VPS prod
+  # Self-hosted runner — runs-on: [self-hosted, {{VPS_PROD_RUNNER_LABEL}}]
+  # Docker compose pull + up -d → healthcheck → rollback if fail
+  # ─────────────────────────────────────────────
+  deploy-prod:
+    name: Deploy to Production
+    runs-on: [self-hosted, "{{VPS_PROD_RUNNER_LABEL}}"]
+    timeout-minutes: 15
+    needs: build-and-push
+
+    environment:
+      name: production
+      url: https://{{PROJECT_NAME}}.pl
+
+    steps:
+      - name: Login to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io \
+            -u ${{ github.actor }} --password-stdin
+
+      - name: Pull new image
+        run: |
+          docker pull ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          echo "Pulled: ${{ env.IMAGE_NAME }}:${{ github.sha }}"
+
+      - name: Store current image tag (rollback reference)
+        id: current
+        run: |
+          CURRENT=$(docker inspect --format='{{.Image}}' {{PROJECT_NAME}}-app 2>/dev/null || echo "none")
+          echo "current_image=$CURRENT" >> $GITHUB_OUTPUT
+          echo "Rollback reference: $CURRENT"
+
+      - name: Update compose image tag and deploy
+        run: |
+          cd /srv/{{PROJECT_NAME}}
+
+          # Update IMAGE_TAG w .env (używanym przez compose.yml)
+          sed -i "s|^IMAGE_TAG=.*|IMAGE_TAG=${{ github.sha }}|" .env
+
+          # Pull + restart (zero-downtime przez healthcheck w compose)
+          docker compose pull
+          docker compose up -d
+
+      - name: Healthcheck — wait for readiness
+        run: |
+          echo "Waiting for /api/ready..."
+          for i in $(seq 1 10); do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+              http://localhost:{{APP_PORT}}/api/ready || echo "000")
+            if [ "$STATUS" = "200" ]; then
+              echo "Healthcheck PASS after $i attempts"
+              exit 0
+            fi
+            echo "Attempt $i/10: HTTP $STATUS — retrying in 3s..."
+            sleep 3
+          done
+          echo "Healthcheck FAIL after 10 attempts — triggering rollback"
+          exit 1
+
+      - name: Rollback on failure
+        if: failure
+        run: |
+          PREV="${{ steps.current.outputs.current_image }}"
+          if [ "$PREV" = "none" ] || [ -z "$PREV" ]; then
+            echo "No previous image reference — cannot auto-rollback"
+            echo "Manual action required: check /srv/{{PROJECT_NAME}}/ on VPS prod"
+            exit 1
+          fi
+
+          echo "Rolling back to: $PREV"
+          cd /srv/{{PROJECT_NAME}}
+          docker compose down
+          docker pull "$PREV" || true
+          # Ustaw poprzedni tag w .env
+          PREV_TAG=$(echo "$PREV" | sed 's|.*:||')
+          sed -i "s|^IMAGE_TAG=.*|IMAGE_TAG=$PREV_TAG|" .env
+          docker compose up -d
+
+          # Verify rollback
+          sleep 5
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            http://localhost:{{APP_PORT}}/api/ready || echo "000")
+          if [ "$STATUS" = "200" ]; then
+            echo "Rollback successful — previous version restored"
+          else
+            echo "Rollback also failed — manual intervention required"
+            exit 1
+          fi
+
+      - name: Deployment summary
+        if: success
+        run: |
+          echo "### Deployment PASS" >> $GITHUB_STEP_SUMMARY
+          echo "**SHA:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Image:** \`${{ env.IMAGE_NAME }}:${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Healthcheck:** /api/ready → 200 OK" >> $GITHUB_STEP_SUMMARY
+          echo "**Deployed at:** $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_STEP_SUMMARY
+
+      - name: Logout from ghcr.io
+        if: always
+        run: docker logout ghcr.io

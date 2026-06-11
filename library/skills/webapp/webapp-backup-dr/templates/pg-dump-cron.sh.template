@@ -1,0 +1,112 @@
+#!/usr/bin/env bash
+# pg-dump-cron.sh — webapp-backup-dr v1.0.0
+# Daily pg_dump + gzip → /backups/daily/ + rclone copy → B2
+# Wywołany przez crond (crontab entry: {{BACKUP_SCHEDULE}})
+# NIE uruchamiaj na live DB — tylko w backup sidecar container
+
+set -euo pipefail
+
+# ── Konfiguracja ──────────────────────────────────────────────────────────────
+PROJECT_NAME="{{PROJECT_NAME}}"
+DB_HOST="${DB_HOST:-{{DB_HOST}}}"
+DB_PORT="${DB_PORT:-{{DB_PORT}}}"
+DB_NAME="${DB_NAME:-{{DB_NAME}}}"
+DB_USER="${DB_USER:-{{DB_USER}}}"
+BACKUP_DIR="/backups/daily"
+B2_BUCKET="{{B2_BUCKET}}"
+TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
+DUMP_FILE="${BACKUP_DIR}/${PROJECT_NAME}-${TIMESTAMP}.sql.gz"
+RCLONE_CONF="/etc/rclone.conf"
+LOG_PREFIX="[pg-dump-cron] $(date --iso-8601=seconds)"
+
+# ── Funkcje ───────────────────────────────────────────────────────────────────
+log { echo "${LOG_PREFIX} $*"; }
+die { echo "${LOG_PREFIX} ERROR: $*" >&2; exit 1; }
+
+check_prereqs {
+    command -v pg_dump >/dev/null || die "pg_dump not found"
+    command -v rclone >/dev/null  || die "rclone not found"
+    [[ -f "${RCLONE_CONF}" ]]     || die "rclone.conf not found at ${RCLONE_CONF}"
+    [[ -d "${BACKUP_DIR}" ]]      || mkdir -p "${BACKUP_DIR}"
+}
+
+wait_for_db {
+    local retries=10
+    local wait=5
+    log "Waiting for PostgreSQL at ${DB_HOST}:${DB_PORT}..."
+    for i in $(seq 1 ${retries}); do
+        if pg_isready -h "${DB_HOST}" -p "${DB_PORT}" -U "${DB_USER}" -q; then
+            log "PostgreSQL ready."
+            return 0
+        fi
+        log "Attempt ${i}/${retries} — sleeping ${wait}s..."
+        sleep "${wait}"
+    done
+    die "PostgreSQL not ready after ${retries} attempts"
+}
+
+run_dump {
+    log "Starting pg_dump → ${DUMP_FILE}"
+
+    # PGPASSWORD z env (nie hardcoded), --no-privileges --no-owner dla przenośności restore
+    PGPASSWORD="${DB_PASSWORD}" pg_dump \
+        --host="${DB_HOST}" \
+        --port="${DB_PORT}" \
+        --username="${DB_USER}" \
+        --dbname="${DB_NAME}" \
+        --format=custom \
+        --no-privileges \
+        --no-owner \
+        --compress=9 \
+        | gzip -9 > "${DUMP_FILE}"
+
+    local size
+    size="$(du -sh "${DUMP_FILE}" | cut -f1)"
+    log "Dump complete. Size: ${size}"
+
+    # Immutable lokalnie — zapobiega przypadkowej nadpisie
+    chmod 0444 "${DUMP_FILE}"
+}
+
+sync_to_b2 {
+    log "Syncing ${DUMP_FILE} to B2 bucket: ${B2_BUCKET}/daily/"
+
+    # rclone copy (NIE sync — sync kasuje pliki na B2!)
+    rclone copy \
+        --config="${RCLONE_CONF}" \
+        --b2-hard-delete=false \
+        --retries=3 \
+        --retries-sleep=10s \
+        --stats=0 \
+        "${DUMP_FILE}" \
+        "b2:${B2_BUCKET}/daily/"
+
+    log "B2 sync complete."
+}
+
+verify_b2 {
+    log "Verifying file on B2..."
+    local filename
+    filename="$(basename "${DUMP_FILE}")"
+
+    local result
+    result="$(rclone lsf --config="${RCLONE_CONF}" "b2:${B2_BUCKET}/daily/" | grep "${filename}" || true)"
+
+    if [[ -z "${result}" ]]; then
+        die "File NOT found on B2 after sync: ${filename}"
+    fi
+    log "B2 verify OK: ${result}"
+}
+
+# ── Main ──────────────────────────────────────────────────────────────────────
+main {
+    log "=== pg-dump-cron START ==="
+    check_prereqs
+    wait_for_db
+    run_dump
+    sync_to_b2
+    verify_b2
+    log "=== pg-dump-cron DONE: ${DUMP_FILE} ==="
+}
+
+main "$@"

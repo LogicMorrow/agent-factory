@@ -1,0 +1,173 @@
+#!/usr/bin/env bash
+# retention-rotation.sh — webapp-backup-dr v1.0.0
+# Retention policy: 7 daily / 4 weekly (Sunday) / 12 monthly (1st of month)
+# Idempotentny — polega na timestamps w nazwach plików, nie na mtime
+# Cron: 5 3 * * * (5 min po pg-dump-cron.sh)
+# Uruchom z --dry-run aby zobaczyć co zostanie usunięte bez faktycznego usuwania
+
+set -euo pipefail
+
+BACKUP_DIR="/backups"
+DAILY_DIR="${BACKUP_DIR}/daily"
+WEEKLY_DIR="${BACKUP_DIR}/weekly"
+MONTHLY_DIR="${BACKUP_DIR}/monthly"
+
+RETAIN_DAILY="{{BACKUP_RETENTION_DAYS}}"    # domyślnie 7
+RETAIN_WEEKLY=4                             # 4 tygodnie
+RETAIN_MONTHLY=12                           # 12 miesięcy
+
+DRY_RUN=false
+LOG_PREFIX="[retention] $(date --iso-8601=seconds)"
+
+# ── Funkcje ───────────────────────────────────────────────────────────────────
+log    { echo "${LOG_PREFIX} $*"; }
+dry_log{ echo "${LOG_PREFIX} [DRY-RUN] $*"; }
+die    { echo "${LOG_PREFIX} ERROR: $*" >&2; exit 1; }
+
+parse_args {
+    for arg in "$@"; do
+        case "${arg}" in
+            --dry-run) DRY_RUN=true; log "DRY-RUN mode — no files will be deleted" ;;
+        esac
+    done
+}
+
+ensure_dirs {
+    mkdir -p "${DAILY_DIR}" "${WEEKLY_DIR}" "${MONTHLY_DIR}"
+    chmod 700 "${DAILY_DIR}" "${WEEKLY_DIR}" "${MONTHLY_DIR}"
+}
+
+# Wyciągnij datę z nazwy pliku: {{PROJECT_NAME}}-YYYYMMDD-HHMMSS.sql.gz → YYYYMMDD
+extract_date {
+    local filename="$1"
+    # Oczekiwany format: prefix-YYYYMMDD-HHMMSS.sql.gz
+    echo "${filename}" | grep -oP '\d{8}(?=-\d{6}\.sql\.gz)' || echo ""
+}
+
+# Wyciągnij dzień tygodnia (0=Sunday) z daty YYYYMMDD
+day_of_week {
+    local datestr="$1"  # YYYYMMDD
+    date -d "${datestr}" +%w 2>/dev/null || echo "-1"
+}
+
+# Wyciągnij dzień miesiąca z daty YYYYMMDD
+day_of_month {
+    local datestr="$1"  # YYYYMMDD
+    date -d "${datestr}" +%d 2>/dev/null || echo "-1"
+}
+
+# Kopiuj niedzielny backup do weekly/ jeśli jeszcze nie skopiowany
+promote_to_weekly {
+    local file="$1"
+    local fname
+    fname="$(basename "${file}")"
+    local target="${WEEKLY_DIR}/${fname}"
+
+    if [[ -f "${target}" ]]; then
+        return 0  # już skopiowany — idempotentny
+    fi
+
+    if [[ "${DRY_RUN}" == "true" ]]; then
+        dry_log "Would promote to weekly: ${fname}"
+        return 0
+    fi
+
+    cp "${file}" "${target}"
+    chmod 0444 "${target}"
+    log "Promoted to weekly: ${fname}"
+}
+
+# Kopiuj backup 1-szego dnia miesiąca do monthly/ jeśli jeszcze nie skopiowany
+promote_to_monthly {
+    local file="$1"
+    local fname
+    fname="$(basename "${file}")"
+    local target="${MONTHLY_DIR}/${fname}"
+
+    if [[ -f "${target}" ]]; then
+        return 0  # już skopiowany — idempotentny
+    fi
+
+    if [[ "${DRY_RUN}" == "true" ]]; then
+        dry_log "Would promote to monthly: ${fname}"
+        return 0
+    fi
+
+    cp "${file}" "${target}"
+    chmod 0444 "${target}"
+    log "Promoted to monthly: ${fname}"
+}
+
+# Usuń pliki starsze niż N — listuje posortowane, usuwa najstarsze (ponad limit)
+prune_directory {
+    local dir="$1"
+    local keep="$2"
+    local label="$3"
+
+    # Listuj pliki .sql.gz posortowane od najnowszego (sort -r)
+    mapfile -t files < <(find "${dir}" -maxdepth 1 -name "*.sql.gz" | sort -r)
+
+    local total="${#files[@]}"
+    if [[ "${total}" -le "${keep}" ]]; then
+        log "${label}: ${total}/${keep} files — nothing to prune"
+        return 0
+    fi
+
+    local to_delete=$(( total - keep ))
+    log "${label}: ${total} files, keeping ${keep}, pruning ${to_delete}"
+
+    # Pliki do usunięcia to te na końcu posortowanej (od najnowszego) listy
+    for (( i = keep; i < total; i++ )); do
+        local f="${files[$i]}"
+        if [[ "${DRY_RUN}" == "true" ]]; then
+            dry_log "Would delete: ${f}"
+        else
+            rm -f "${f}"
+            log "Deleted: $(basename "${f}")"
+        fi
+    done
+}
+
+# ── Main ──────────────────────────────────────────────────────────────────────
+main {
+    parse_args "$@"
+    log "=== retention-rotation START (retain: ${RETAIN_DAILY}d daily / ${RETAIN_WEEKLY}w weekly / ${RETAIN_MONTHLY}m monthly) ==="
+    ensure_dirs
+
+    # Krok 1: Przejdź przez daily/ i promuj do weekly/monthly jeśli applicable
+    while IFS= read -r -d '' file; do
+        local fname
+        fname="$(basename "${file}")"
+        local filedate
+        filedate="$(extract_date "${fname}")"
+
+        if [[ -z "${filedate}" ]]; then
+            log "WARN: Cannot parse date from ${fname} — skipping promotion"
+            continue
+        fi
+
+        local dow
+        dow="$(day_of_week "${filedate}")"
+        local dom
+        dom="$(day_of_month "${filedate}")"
+
+        # Niedziela (0) → weekly
+        if [[ "${dow}" == "0" ]]; then
+            promote_to_weekly "${file}"
+        fi
+
+        # 1-szy dnia miesiąca → monthly
+        if [[ "${dom}" == "01" ]]; then
+            promote_to_monthly "${file}"
+        fi
+    done < <(find "${DAILY_DIR}" -maxdepth 1 -name "*.sql.gz" -print0)
+
+    # Krok 2: Prune każdy katalog do limitu
+    prune_directory "${DAILY_DIR}"   "${RETAIN_DAILY}"   "daily"
+    prune_directory "${WEEKLY_DIR}"  "${RETAIN_WEEKLY}"  "weekly"
+    prune_directory "${MONTHLY_DIR}" "${RETAIN_MONTHLY}" "monthly"
+
+    log "=== retention-rotation DONE ==="
+}
+
+main "$@"
